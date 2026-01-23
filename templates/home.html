@@ -33,7 +33,7 @@
 
                     // 3. Loop through new data and add markers to the group
                     data.forEach(function(m) {
-                        L.marker([m.lat, m.lon])
+                        L.marker([m.lat, m.lng])
                             .addTo(markerGroup);
                     });
 
