@@ -11,7 +11,7 @@ app = Flask(__name__)
 @app.route('/')
 def home():
     markers = []
-    if (not os.path.isfile('data.json')) or (os.path.getmtime('data.json') + 25) > time.time():
+    if (not os.path.isfile('data.json')) or (os.path.getmtime('data.json') + 25) < time.time():
         fetch_data()
     with open('data.json', 'r') as file:
         data = json.load(file)
@@ -27,7 +27,7 @@ def home():
 @app.route('/data')
 def get_data():
     markers = []
-    if (not os.path.isfile('data.json')) or (os.path.getmtime('data.json') + 25) > time.time():
+    if (not os.path.isfile('data.json')) or (os.path.getmtime('data.json') + 25) < time.time():
         fetch_data()
     with open('data.json', 'r') as file:
         data = json.load(file)
@@ -42,7 +42,7 @@ def get_data():
 @app.route('/api', methods=['GET'])
 def api():
     # check if file already exists
-    if (not os.path.isfile('data.json')) or (os.path.getmtime('data.json') + 25) > time.time():
+    if (not os.path.isfile('data.json')) or (os.path.getmtime('data.json') + 25) < time.time():
         fetch_data()
     with open('data.json', 'r') as file:
         data = json.load(file)
