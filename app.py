@@ -2,7 +2,7 @@ import os
 import json
 import time
 
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 import requests
 from requests import RequestException
 
@@ -11,7 +11,7 @@ app = Flask(__name__)
 @app.route('/')
 def home():
     markers = []
-    if (not os.path.isfile('data.json')) or (os.path.getmtime('data.json') + 31) > time.time():
+    if (not os.path.isfile('data.json')) or (os.path.getmtime('data.json') + 25) > time.time():
         fetch_data()
     with open('data.json', 'r') as file:
         data = json.load(file)
@@ -24,10 +24,25 @@ def home():
 
     return render_template('home.html', markers=markers)
 
+@app.route('/data')
+def get_data():
+    markers = []
+    if (not os.path.isfile('data.json')) or (os.path.getmtime('data.json') + 25) > time.time():
+        fetch_data()
+    with open('data.json', 'r') as file:
+        data = json.load(file)
+        for vehicle in data["get_vehicles"]:
+            marker = {
+                "lat": vehicle["lat"],
+                "lng": vehicle["lng"],
+            }
+            markers.append(marker)
+    return jsonify(markers)
+
 @app.route('/api', methods=['GET'])
 def api():
     # check if file already exists
-    if (not os.path.isfile('data.json')) or (os.path.getmtime('data.json') + 31) > time.time():
+    if (not os.path.isfile('data.json')) or (os.path.getmtime('data.json') + 25) > time.time():
         fetch_data()
     with open('data.json', 'r') as file:
         data = json.load(file)
