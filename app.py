@@ -2,7 +2,7 @@ import os
 import json
 import time
 
-from flask import Flask
+from flask import Flask, render_template
 import requests
 from requests import RequestException
 
@@ -11,7 +11,7 @@ app = Flask(__name__)
 @app.route('/')
 def home():
     markers = []
-    if os.path.isfile('data.json') or (os.path.getmtime('data.json') + 86400) > time.time():
+    if (not os.path.isfile('data.json')) or (os.path.getmtime('data.json') + 31) > time.time():
         fetch_data()
     with open('data.json', 'r') as file:
         data = json.load(file)
@@ -22,16 +22,13 @@ def home():
             }
             markers.append(marker)
 
+    return render_template('home.html', markers=markers)
+
 @app.route('/api', methods=['GET'])
 def api():
     # check if file already exists
-    if os.path.isfile('data.json'):
-        # check if file is at most 1 day old
-        if (os.path.getmtime('data.json') + 86400) > os.path.getmtime('data.json'):
-            with open('data.json', 'r') as file:
-                data = json.load(file)
-                return data
-    fetch_data()
+    if (not os.path.isfile('data.json')) or (os.path.getmtime('data.json') + 31) > time.time():
+        fetch_data()
     with open('data.json', 'r') as file:
         data = json.load(file)
         return data
