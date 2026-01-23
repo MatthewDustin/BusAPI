@@ -1,48 +1,19 @@
 import os
 import json
-import time
 
-from flask import Flask
 import requests
 from requests import RequestException
 
-app = Flask(__name__)
+from app import fetch_data
 
-@app.route('/')
-def home():
-    markers = []
-    if os.path.isfile('data.json') or (os.path.getmtime('data.json') + 86400) > time.time():
-        fetch_data()
+if __name__ == "__main__":
     with open('data.json', 'r') as file:
         data = json.load(file)
+        print(data)
         for vehicle in data["get_vehicles"]:
-            marker = {
-                "lat": vehicle["lat"],
-                "lng": vehicle["lng"],
-            }
-            markers.append(marker)
+            print(vehicle["lat"])
 
-@app.route('/api', methods=['GET'])
-def api():
-    # check if file already exists
-    if os.path.isfile('data.json'):
-        # check if file is at most 1 day old
-        if (os.path.getmtime('data.json') + 86400) > os.path.getmtime('data.json'):
-            with open('data.json', 'r') as file:
-                data = json.load(file)
-                return data
-    fetch_data()
-    with open('data.json', 'r') as file:
-        data = json.load(file)
-        return data
 
-def fetch_data():
-    # request data from external API
-
-    data = fetch_vehicles()
-    # save data to file
-    with open('data.json', 'w') as file:
-        json.dump(data, file)
 
 service_url = "https://appalcart.etaspot.net/service.php?service=get_service_announcements&token=TESTING"
 vehicles_url = "https://appalcart.etaspot.net/service.php?service=get_vehicles&includeETAData=1&inService=1&orderedETAArray=1&token=TESTING"
@@ -98,8 +69,3 @@ def fetch_vehicles():
     except ValueError as ve:
         print(ve)
         return []
-
-if __name__ == "__main__":
-    # Railway provides a PORT environment variable automatically
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)

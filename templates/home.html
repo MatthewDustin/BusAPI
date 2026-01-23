@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flask Map Markers</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 500px; width: 100%; }
+    </style>
+</head>
+<body>
+
+    <h3>My Flask Map</h3>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // 1. Initialize the map centered on a specific spot
+        var map = L.map('map').setView([36.215753, -81.6821169], 7);
+
+        // 2. Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // 3. Inject Flask data into JS and loop through it
+        var markers = {{ markers | tojson }};
+
+        markers.forEach(function(marker) {
+            L.marker([marker.lat, marker.lng])
+                .bindPopup(marker.popup)
+                .addTo(map);
+        });
+    </script>
+</body>
+</html>
