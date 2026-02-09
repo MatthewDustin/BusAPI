@@ -8,6 +8,26 @@ from requests import RequestException
 
 app = Flask(__name__)
 
+route_colors = {
+    3: "Red",
+    4: "Green",
+    9: "Blue",
+    10: "Yellow",
+    11: "Yellow",
+    13: "Red",
+    14: "Green",
+    29: "Red",
+    30: "Blue",
+    31: "Green",
+    32: "Yellow",
+}
+
+stop_names = {
+    112: "Downtown",
+    113: "University",
+    114: "Mall",
+}
+
 @app.route('/')
 def home():
     markers = []
@@ -16,9 +36,19 @@ def home():
     with open('data.json', 'r') as file:
         data = json.load(file)
         for vehicle in data["get_vehicles"]:
+            route_color = route_colors[vehicle["route_id"]]
             marker = {
                 "lat": vehicle["lat"],
                 "lng": vehicle["lng"],
+                "route_color": route_color,
+                "route_id": vehicle["route_id"],
+                "equipment_id": vehicle["equipment_id"],
+                "stop1": stop_names.get(vehicle["minutesToNextStops"][0]["stopID"], "Unknown"),
+                "stop1_eta": vehicle["minutesToNextStops"][0]["status"],
+                "stop2": stop_names.get(vehicle["minutesToNextStops"][1]["stopID"], "Unknown"),
+                "stop2_eta": vehicle["minutesToNextStops"][1]["status"],
+                "stop3": stop_names.get(vehicle["minutesToNextStops"][2]["stopID"], "Unknown"),
+                "stop3_eta": vehicle["minutesToNextStops"][2]["status"],
             }
             markers.append(marker)
 

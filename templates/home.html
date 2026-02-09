@@ -13,6 +13,13 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
+        // create bus icon
+        var busIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/1023/1023362.png',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+        });
+
         // 1. Initialize the map centered on a specific spot
         var map = L.map('map').setView([36.215753, -81.6821169], 15);
 
@@ -33,7 +40,9 @@
 
                     // 3. Loop through new data and add markers to the group
                     data.forEach(function(m) {
-                        L.marker([m.lat, m.lng])
+                        let popup = `<b>Route:</b> ${m.route_color}<br><b>Next Stops:</b><br> {m.stop1 }<b> {m.stop1_eta}</b><br> {m.stop2 }<b> {m.stop2_eta}</b><br> {m.stop3 }<b> {m.stop3_eta}</b>`;
+                        L.marker([m.lat, m.lng], {icon: busIcon, alt: m.route_color + " Bus", autoPanOnFocus: true})
+                            .bindPopup(popup)
                             .addTo(markerGroup);
                     });
 
