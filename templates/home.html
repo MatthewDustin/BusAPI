@@ -78,7 +78,7 @@
                     // 3. Loop through new data and add markers to the group
                     data.forEach(function(m) {
                         let color = String(m.route_color).replace(/^['"]|['"]$/g, '');
-                        let popup = `<div class='busIcon' border-color=${color}><b>Route:</b> ${m.route_name}<br><b>Next Stops:</b><br> ${m.stop1 }<b> ${m.stop1_eta}</b><br> ${m.stop2 }<b> ${m.stop2_eta}</b><br> ${m.stop3 }<b> ${m.stop3_eta}</b></div>`;
+                        let popup = `<div class='busIcon' style="border-color: ${color}"><b>Route:</b> ${m.route_name}<br><b>Next Stops:</b><br> ${m.stop1 }<b> ${m.stop1_eta}</b><br> ${m.stop2 }<b> ${m.stop2_eta}</b><br> ${m.stop3 }<b> ${m.stop3_eta}</b></div>`;
                         L.marker([m.lat, m.lng], {icon: busIcon, alt: m.route_name + " Bus", autoPanOnFocus: true})
                             .bindPopup(popup)
                             .on('click', function() { showRoute(m.route_id); })
