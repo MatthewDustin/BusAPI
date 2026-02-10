@@ -29,7 +29,7 @@ def get_vehicles():
                 "route_color": route_color,
                 "route_id": vehicle["routeID"],
                 "route_name": route_name,
-                "equipment_id": vehicle["equipment_id"],
+                "equipment_id": vehicle["equipmentID"],
                 "stop1": stop_info[vehicle["minutesToNextStops"][0]["stopID"]]["name"],
                 "stop1_eta": vehicle["minutesToNextStops"][0]["minutes"],
                 "stop2": stop_info[vehicle["minutesToNextStops"][1]["stopID"]]["name"],
