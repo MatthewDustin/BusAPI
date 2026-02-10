@@ -5,6 +5,13 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         #map { height: 500px; width: 100%; }
+        .busIcon {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            border: 0.69rem solid;
+            border-radius: 0.5rem;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -20,6 +27,12 @@
             iconAnchor: [16, 16]
         });
 
+        var stopIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/1042/1042314.png',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+
         // 1. Initialize the map centered on a specific spot
         var map = L.map('map').setView([36.215753, -81.6821169], 15);
 
@@ -28,11 +41,48 @@
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
+        // get stops and store it in a variable
+        var stops = {};
+        fetch('/stops')
+            .then(response => response.json())
+            .then(data => {
+                stops = data;
+            })
+            .catch(error => console.error('Error fetching stops:', error));
+
+        var routes = {};
+        fetch('/routes')
+            .then(response => response.json())
+            .then(data => {
+                routes = data;
+            })
+            .catch(error => console.error('Error fetching routes:', error));
+
         // 1. Create a LayerGroup to hold the markers
         var markerGroup = L.layerGroup().addTo(map);
 
+        // create a layer group to hold stops
+        var stopGroup = L.layerGroup().addTo(map);
+
+        function showRoute(routeID) {
+            let stopIDList = routes[routeID].stops;
+
+            let stopList = []
+            stopIDList.forEach(function(stopID) {
+                let stop = stops[stopID];
+                stopList.push(stop);
+            });
+            stopGroup.clearLayers();
+            stopList.forEach(function(stop) {
+                let popup = `<div class='stopIcon'><b>${stop.name}</b><br>${stop.lat}, ${stop.lng}</div>`;
+                L.marker([stop.lat, stop.lng], {icon: stopIcon, alt: stop.name + " Stop", autoPanOnFocus: true})
+                    .bindPopup(popup)
+                    .addTo(stopGroup);
+            });
+        }
+
         function updateMap() {
-            fetch('/data')
+            fetch('/vehicles')
                 .then(response => response.json())
                 .then(data => {
                     // 2. Clear existing markers so they don't stack up
@@ -40,9 +90,10 @@
 
                     // 3. Loop through new data and add markers to the group
                     data.forEach(function(m) {
-                        let popup = `<b>Route:</b> ${m.route_color}<br><b>Next Stops:</b><br> {m.stop1 }<b> {m.stop1_eta}</b><br> {m.stop2 }<b> {m.stop2_eta}</b><br> {m.stop3 }<b> {m.stop3_eta}</b>`;
-                        L.marker([m.lat, m.lng], {icon: busIcon, alt: m.route_color + " Bus", autoPanOnFocus: true})
+                        let popup = `<div class='busIcon' border-color=${m.route_color}><b>Route:</b> ${m.route_name}<br><b>Next Stops:</b><br> {m.stop1 }<b> {m.stop1_eta}</b><br> {m.stop2 }<b> {m.stop2_eta}</b><br> {m.stop3 }<b> {m.stop3_eta}</b></div>`;
+                        L.marker([m.lat, m.lng], {icon: busIcon, alt: m.route_name + " Bus", autoPanOnFocus: true})
                             .bindPopup(popup)
+                            .on('click', showRoute(m.route_id))
                             .addTo(markerGroup);
                     });
 
