@@ -104,11 +104,18 @@ def update_clean():
 
     with open('stops.json', 'r') as file:
         stops = json.load(file)
+    with open('routes.json', 'r') as file:
+        routes = json.load(file)
     for stop in stops.keys():
-        stops[stop]['routes'] = []
+        stops[str(stop)]['routes'] = []
     for route in routes.keys():
+        route = str(route)
+        #app.logger.info(f"Updating route: {routes[route]['name']} with ID: {route}")
+        #app.logger.info(f"Route {routes[route]['name']} has stop IDs: {routes[route]['stopIDs']}")
+        #app.logger.info("Available stops: " + ", ".join(stops.keys()))
         routes[route]['stopNames'] = []
         for stop in routes[route]["stopIDs"]:
+            stop = str(stop)
             if stop in stops.keys():
                 routes[route]['stopNames'].append(stops[stop]['name'])
                 if routes[route]["name"] not in stops[stop]["routes"]:
@@ -118,44 +125,44 @@ def update_clean():
     with open('stopETAs.json', 'r') as eta_file:
         stop_etas = json.load(eta_file)
         for stop in stop_etas["get_stop_etas"]:
-            if stop["id"] in stops.keys():
+            stop_id = str(stop["id"])
+            if stop_id in stops.keys():
                 etas = []
                 nextBuses = []
                 for bus in stop["enRoute"]:
                     etas.append(bus['minutes'])
                     nextBuses.append(bus['equipmentID'])
-                stops[stop["id"]]["etas"] = etas
-                stops[stop["id"]]["nextBuses"] = nextBuses
+                stops[stop_id]["etas"] = etas
+                stops[stop_id]["nextBuses"] = nextBuses
     with open('stops.json', 'w') as file:
         json.dump(stops, file)
 
     buses = []
-    with open('routes.json', 'r') as file:
-        routes = json.load(file)
-        app.logger.info(f"Loaded routes: {list(routes.keys())}")
-        with open('vehicles.json', 'r') as file:
-            vehicles = json.load(file)
 
-            for vehicle in vehicles["get_vehicles"]:
-                stopNames = []
-                etas = []
-                for stop in vehicle["minutesToNextStops"]:
-                    if stop["stopID"] in stops.keys():
-                        stopNames.append(stops[stop["stopID"]]["name"])
-                        etas.append(stop["minutes"])
-                route_id = str(vehicle["routeID"])
-                buses.append({
-                    "name": vehicle["equipmentID"],
-                    "lat": vehicle["lat"],
-                    "lng": vehicle["lng"],
-                    "routeID": vehicle["routeID"],
-                    "route": routes[route_id]["name"] if route_id in routes else "Unknown",
-                    "inService": vehicle["inService"] == 1,
-                    "load": vehicle["load"],
-                    "onSchedule": vehicle["onSchedule"],
-                    "stops": stopNames,
-                    "etas": etas
-                })
+    app.logger.info(f"Loaded routes: {list(routes.keys())}")
+    with open('vehicles.json', 'r') as file:
+        vehicles = json.load(file)
+
+        for vehicle in vehicles["get_vehicles"]:
+            stopNames = []
+            etas = []
+            for stop in vehicle["minutesToNextStops"]:
+                if str(stop["stopID"]) in stops.keys():
+                    stopNames.append(stops[str(stop["stopID"])]["name"])
+                    etas.append(stop["minutes"])
+            route_id = str(vehicle["routeID"])
+            buses.append({
+                "name": vehicle["equipmentID"],
+                "lat": vehicle["lat"],
+                "lng": vehicle["lng"],
+                "routeID": vehicle["routeID"],
+                "route": routes[route_id]["name"] if route_id in routes else "Unknown",
+                "inService": vehicle["inService"] == 1,
+                "load": vehicle["load"],
+                "onSchedule": vehicle["onSchedule"],
+                "stops": stopNames,
+                "etas": etas
+            })
     with open('buses.json', 'w') as file:
         json.dump(buses, file)
 
