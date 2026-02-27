@@ -87,6 +87,10 @@ def fetch_data():
 
 def update_clean():
     global stops, routes
+    with open('routes.json', 'r') as file:
+        routes = json.load(file)
+    with open('stops.json', 'r') as file:
+        stops = json.load(file)
     for stop in stops.keys():
         stops[stop]['routes'] = []
     for route in routes.keys():
