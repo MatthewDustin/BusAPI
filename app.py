@@ -6,9 +6,8 @@ from flask import Flask, render_template, jsonify
 import requests
 from requests import RequestException
 app = Flask(__name__)
-route_info = {}
-stop_info = {}
-
+routes = {}
+stops = {}
 
 @app.route('/')
 def home():
@@ -16,13 +15,14 @@ def home():
 
 @app.route('/vehicles')
 def get_vehicles():
+    global routes, stops
     markers = []
     fetch_data()
     with open('vehicles.json', 'r') as file:
         vehicles = json.load(file)
         for vehicle in vehicles["get_vehicles"]:
-            route_color = route_info[vehicle["routeID"]]["color"]
-            route_name = route_info[vehicle["routeID"]]["name"]
+            route_color = routes[vehicle["routeID"]]["color"]
+            route_name = routes[vehicle["routeID"]]["name"]
             marker = {
                 "lat": vehicle["lat"],
                 "lng": vehicle["lng"],
@@ -30,11 +30,11 @@ def get_vehicles():
                 "route_id": vehicle["routeID"],
                 "route_name": route_name,
                 "equipment_id": vehicle["equipmentID"],
-                "stop1": stop_info[vehicle["minutesToNextStops"][0]["stopID"]]["name"],
+                "stop1": stops[vehicle["minutesToNextStops"][0]["stopID"]]["name"],
                 "stop1_eta": vehicle["minutesToNextStops"][0]["minutes"],
-                "stop2": stop_info[vehicle["minutesToNextStops"][1]["stopID"]]["name"],
+                "stop2": stops[vehicle["minutesToNextStops"][1]["stopID"]]["name"],
                 "stop2_eta": vehicle["minutesToNextStops"][1]["minutes"],
-                "stop3": stop_info[vehicle["minutesToNextStops"][2]["stopID"]]["name"],
+                "stop3": stops[vehicle["minutesToNextStops"][2]["stopID"]]["name"],
                 "stop3_eta": vehicle["minutesToNextStops"][2]["minutes"],
             }
             markers.append(marker)
@@ -45,6 +45,7 @@ def get_announcements():
     fetch_data()
     with open('announcements.json', 'r') as file:
         announcements = json.load(file)
+        announcements['file_age'] = time.time() - os.path.getmtime('announcements.json')
         return jsonify(announcements)
 
 @app.route('/routes')
@@ -52,14 +53,21 @@ def get_routes():
     fetch_data()
     with open('routes.json', 'r') as file:
         routes = json.load(file)
-        return jsonify(routes)
+        return jsonify(routes.values())
 
 @app.route('/stops')
 def get_stops():
     fetch_data()
     with open('stops.json', 'r') as file:
         stops = json.load(file)
-        return jsonify(stops)
+        return jsonify(stops.values())
+
+@app.route('/buses')
+def get_buses():
+    fetch_data()
+    with open('vehicles.json', 'r') as file:
+        vehicles = json.load(file)
+        return jsonify(vehicles)
 
 def fetch_data():
     if (not os.path.isfile('vehicles.json')) or (os.path.getmtime('vehicles.json') + 25) < time.time():
@@ -71,7 +79,60 @@ def fetch_data():
             json.dump(stop_etas, file)
     if (not os.path.isfile('stops.json')) or (os.path.getmtime('stops.json') + 57600) < time.time():
         fetch_daily_data()
+    update_clean()
 
+def update_clean():
+    global stops, routes
+    for stop in stops.keys():
+        stops[stop]['routes'] = []
+    for route in routes.keys():
+        routes[route]['stopNames'] = []
+        for stop in routes[route]["stopIDs"]:
+            if stop in stops.keys():
+                routes[route]['stopNames'].append(stops[stop]['name'])
+                if routes[route]["name"] not in stops[stop]["routes"]:
+                    stop["routes"].append(routes[route]["name"])
+    with open('routes.json', 'w') as file:
+        json.dump(routes, file)
+    with open('stopETAs.json', 'r') as eta_file:
+        stop_etas = json.load(eta_file)
+        for stop in stop_etas["get_stop_etas"]:
+            if stop["id"] in stops.keys():
+                etas = []
+                nextBuses = []
+                for bus in stops[stop["id"]]["enRoute"]:
+                    etas.append(bus['minutes'])
+                    nextBuses.append(bus['equipmentID'])
+                stops[stop["id"]]["etas"] = etas
+                stops[stop["id"]]["nextBuses"] = nextBuses
+    with open('stops.json', 'w') as file:
+        json.dump(stops, file)
+
+    buses = []
+    with open('vehicles.json', 'r') as file:
+        vehicles = json.load(file)
+
+        for vehicle in vehicles["get_vehicles"]:
+            stopNames = []
+            etas = []
+            for stop in vehicle["minutesToNextStops"]:
+                if stop["stopID"] in stops.keys():
+                    stopNames.append(stops[stop["stopID"]]["name"])
+                    etas.append(stop["minutes"])
+            buses.append({
+                "name": vehicle["equipmentID"],
+                "lat": vehicle["lat"],
+                "lng": vehicle["lng"],
+                "routeID": vehicle["routeID"],
+                "route": routes[vehicle["routeID"]]["name"],
+                "inService": vehicle["inService"],
+                "load": vehicle["load"],
+                "onSchedule": vehicle["onSchedule"],
+                "stops": stopNames,
+                "etas": etas
+            })
+    with open('vehicles.json', 'w') as file:
+        json.dump(buses, file)
 def fetch_daily_data():
     announcements = fetch_service_announcements()
     with open('announcements.json', 'w') as file:
@@ -164,7 +225,7 @@ def fetch_all_stop_etas() -> List[Dict[str, Any]]:
         return []
 
 def fetch_routes():
-    global route_info
+    global routes
     routes_url = "https://appalcart.etaspot.net/service.php?service=get_routes&token=TESTING"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0",
@@ -178,14 +239,15 @@ def fetch_routes():
         response = requests.get(routes_url, headers=headers)
         response.raise_for_status()
         data = response.json()
-        route_info = []
+        routes = {}
         for route in data.get("get_routes", []):
-            route_info.append({
+            routes[route["id"]] = {
                 "name": route["name"],
                 "color": route["color"],
-                "stops": route["stops"]
-            })
-        return route_info
+                "stopIDs": route["stops"],
+                "stopNames": []
+            }
+        return routes
 
     except RequestException as e:
         print(f"An error occurred while fetching routes: {e}")
@@ -198,7 +260,7 @@ def fetch_routes():
         return []
 
 def fetch_stops():
-    global stop_info
+    global stops
     stops_url = "https://appalcart.etaspot.net/service.php?service=get_stops&token=TESTING"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0",
@@ -212,16 +274,18 @@ def fetch_stops():
         response = requests.get(stops_url, headers=headers)
         response.raise_for_status()
         data = response.json()
-        stop_info = []
-
+        stops = {}
         for stop in data.get("get_stops", []):
-            stop_info.append({
+            stops[stop["id"]] = {
                 "name": stop["name"],
                 "lat": stop["lat"],
-                "lng": stop["lng"]
-            })
+                "lng": stop["lng"],
+                "routes": [],
+                "etas": [],
+                "nextBuses": []
+            }
 
-        return stop_info
+        return stops
 
     except RequestException as e:
         print(f"An error occurred while fetching stops: {e}")
@@ -238,7 +302,3 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
     fetch_data()
-    with open('routes.json', 'r') as file:
-        route_info = json.load(file)
-    with open('stops.json', 'r') as file:
-        stop_info = json.load(file)
