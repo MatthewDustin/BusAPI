@@ -178,13 +178,13 @@ def fetch_routes():
         response = requests.get(routes_url, headers=headers)
         response.raise_for_status()
         data = response.json()
-        route_info = {}
+        route_info = []
         for route in data.get("get_routes", []):
-            route_info[route["id"]] = {
+            route_info.append({
                 "name": route["name"],
                 "color": route["color"],
                 "stops": route["stops"]
-            }
+            })
         return route_info
 
     except RequestException as e:
@@ -212,14 +212,14 @@ def fetch_stops():
         response = requests.get(stops_url, headers=headers)
         response.raise_for_status()
         data = response.json()
-        stop_info = {}
+        stop_info = []
 
         for stop in data.get("get_stops", []):
-            stop_info[stop["id"]] = {
+            stop_info.append({
                 "name": stop["name"],
                 "lat": stop["lat"],
                 "lng": stop["lng"]
-            }
+            })
 
         return stop_info
 
