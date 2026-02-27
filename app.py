@@ -1,11 +1,16 @@
 import os
 import json
 import time
+import logging
 from typing import List, Dict, Any
 from flask import Flask, render_template, jsonify
 import requests
 from requests import RequestException
 app = Flask(__name__)
+
+# Configure logging to show INFO messages
+logging.basicConfig(level=logging.INFO)
+app.logger.setLevel(logging.INFO)
 routes = {}
 stops = {}
 
@@ -21,8 +26,13 @@ def get_vehicles():
     with open('vehicles.json', 'r') as file:
         vehicles = json.load(file)
         for vehicle in vehicles["get_vehicles"]:
-            route_color = routes[vehicle["routeID"]]["color"]
-            route_name = routes[vehicle["routeID"]]["name"]
+            route_id = str(vehicle["routeID"])
+            if route_id in routes:
+                route_color = routes[route_id]["color"]
+                route_name = routes[route_id]["name"]
+            else:
+                route_color = "#000000"
+                route_name = "Unknown"
             marker = {
                 "lat": vehicle["lat"],
                 "lng": vehicle["lng"],
@@ -133,12 +143,13 @@ def update_clean():
                     if stop["stopID"] in stops.keys():
                         stopNames.append(stops[stop["stopID"]]["name"])
                         etas.append(stop["minutes"])
+                route_id = str(vehicle["routeID"])
                 buses.append({
                     "name": vehicle["equipmentID"],
                     "lat": vehicle["lat"],
                     "lng": vehicle["lng"],
                     "routeID": vehicle["routeID"],
-                    "route": routes[vehicle["routeID"]]["name"],
+                    "route": routes[route_id]["name"] if route_id in routes else "Unknown",
                     "inService": vehicle["inService"] == 1,
                     "load": vehicle["load"],
                     "onSchedule": vehicle["onSchedule"],
