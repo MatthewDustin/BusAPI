@@ -71,6 +71,7 @@ def get_buses():
         return jsonify(buses)
 
 def fetch_data():
+    global routes, stops
     if (not os.path.isfile('vehicles.json')) or (os.path.getmtime('vehicles.json') + 25) < time.time():
         vehicles = fetch_vehicles()
         with open('vehicles.json', 'w') as file:
@@ -78,6 +79,10 @@ def fetch_data():
         stop_etas = fetch_all_stop_etas()
         with open('stopETAs.json', 'w') as file:
             json.dump(stop_etas, file)
+        with open('routes.json', 'r') as file:
+            routes = json.load(file)
+        with open('stops.json', 'r') as file:
+            stops = json.load(file)
     if (not os.path.isfile('stops.json')) or (os.path.getmtime('stops.json') + 57600) < time.time():
         fetch_daily_data()
     update_clean()
@@ -134,7 +139,9 @@ def update_clean():
             })
     with open('buses.json', 'w') as file:
         json.dump(buses, file)
+
 def fetch_daily_data():
+    global stops, routes
     announcements = fetch_service_announcements()
     with open('announcements.json', 'w') as file:
         json.dump(announcements, file)
