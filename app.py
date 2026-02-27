@@ -51,10 +51,11 @@ def get_announcements():
 @app.route('/routes')
 def get_routes():
     global routes
+    fetch_data()
     with open('routes.json', 'r') as file:
         routes = json.load(file)
         return jsonify(list(routes.values()))
-    fetch_data()
+
 
 
 @app.route('/stops')
