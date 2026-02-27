@@ -122,6 +122,7 @@ def update_clean():
     buses = []
     with open('routes.json', 'r') as file:
         routes = json.load(file)
+        app.logger.log(f"Loaded routes: {list(routes.keys())}")
         with open('vehicles.json', 'r') as file:
             vehicles = json.load(file)
 
@@ -256,6 +257,7 @@ def fetch_routes():
         data = response.json()
         routes = {}
         for route in data.get("get_routes", []):
+            app.logger.log(f"Processing route: {route['name']} with ID: {route['id']}")
             routes[route["id"]] = {
                 "name": route["name"],
                 "color": route["color"],
