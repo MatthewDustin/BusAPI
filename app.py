@@ -91,7 +91,7 @@ def update_clean():
             if stop in stops.keys():
                 routes[route]['stopNames'].append(stops[stop]['name'])
                 if routes[route]["name"] not in stops[stop]["routes"]:
-                    stop["routes"].append(routes[route]["name"])
+                    stops[stop]["routes"].append(routes[route]["name"])
     with open('routes.json', 'w') as file:
         json.dump(routes, file)
     with open('stopETAs.json', 'r') as eta_file:
