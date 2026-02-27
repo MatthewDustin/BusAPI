@@ -122,7 +122,7 @@ def update_clean():
     buses = []
     with open('routes.json', 'r') as file:
         routes = json.load(file)
-        app.logger.log(f"Loaded routes: {list(routes.keys())}")
+        app.logger.info(f"Loaded routes: {list(routes.keys())}")
         with open('vehicles.json', 'r') as file:
             vehicles = json.load(file)
 
@@ -257,7 +257,7 @@ def fetch_routes():
         data = response.json()
         routes = {}
         for route in data.get("get_routes", []):
-            app.logger.log(f"Processing route: {route['name']} with ID: {route['id']}")
+            app.logger.info(f"Processing route: {route['name']} with ID: {route['id']}")
             routes[route["id"]] = {
                 "name": route["name"],
                 "color": route["color"],
@@ -319,5 +319,3 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
     fetch_data()
-    app.logger(routes.keys())
-    app.logger(stops.keys())
