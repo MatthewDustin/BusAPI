@@ -90,7 +90,7 @@ def fetch_data():
     update_clean()
 
 def update_clean():
-    global stops, routes
+    global stops, routes, app
 
     with open('stops.json', 'r') as file:
         stops = json.load(file)
@@ -241,7 +241,7 @@ def fetch_all_stop_etas() -> List[Dict[str, Any]]:
         return []
 
 def fetch_routes():
-    global routes
+    global routes, app
     routes_url = "https://appalcart.etaspot.net/service.php?service=get_routes&token=TESTING"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0",
