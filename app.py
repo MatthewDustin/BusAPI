@@ -62,6 +62,7 @@ def get_stops():
         stops = json.load(file)
         return jsonify(list(stops.values()))
 
+
 @app.route('/buses')
 def get_buses():
     fetch_data()
