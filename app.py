@@ -126,7 +126,7 @@ def update_clean():
                 "lng": vehicle["lng"],
                 "routeID": vehicle["routeID"],
                 "route": routes[vehicle["routeID"]]["name"],
-                "inService": vehicle["inService"],
+                "inService": vehicle["inService"] == 1,
                 "load": vehicle["load"],
                 "onSchedule": vehicle["onSchedule"],
                 "stops": stopNames,
