@@ -70,7 +70,7 @@ def get_buses():
 
 def fetch_data():
     global routes, stops
-    if (not os.path.isfile('stops.json')) or (os.path.getmtime('stops.json') + 57600) < time.time():
+    if (not os.path.isfile('stops.json')) or (not os.path.isfile('routes.json')) or (not os.path.isfile('announcements.json')) or (os.path.getmtime('stops.json') + 57600) < time.time():
         fetch_daily_data()
     if (not os.path.isfile('vehicles.json')) or (os.path.getmtime('vehicles.json') + 25) < time.time():
         vehicles = fetch_vehicles()
