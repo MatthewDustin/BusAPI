@@ -100,7 +100,7 @@ def update_clean():
             if stop["id"] in stops.keys():
                 etas = []
                 nextBuses = []
-                for bus in stops[stop["id"]]["enRoute"]:
+                for bus in stop["enRoute"]:
                     etas.append(bus['minutes'])
                     nextBuses.append(bus['equipmentID'])
                 stops[stop["id"]]["etas"] = etas
