@@ -53,21 +53,21 @@ def get_routes():
     fetch_data()
     with open('routes.json', 'r') as file:
         routes = json.load(file)
-        return jsonify(routes.values())
+        return jsonify(list(routes.values()))
 
 @app.route('/stops')
 def get_stops():
     fetch_data()
     with open('stops.json', 'r') as file:
         stops = json.load(file)
-        return jsonify(stops.values())
+        return jsonify(list(stops.values()))
 
 @app.route('/buses')
 def get_buses():
     fetch_data()
-    with open('vehicles.json', 'r') as file:
-        vehicles = json.load(file)
-        return jsonify(vehicles)
+    with open('buses.json', 'r') as file:
+        buses = json.load(file)
+        return jsonify(buses)
 
 def fetch_data():
     if (not os.path.isfile('vehicles.json')) or (os.path.getmtime('vehicles.json') + 25) < time.time():
@@ -131,7 +131,7 @@ def update_clean():
                 "stops": stopNames,
                 "etas": etas
             })
-    with open('vehicles.json', 'w') as file:
+    with open('buses.json', 'w') as file:
         json.dump(buses, file)
 def fetch_daily_data():
     announcements = fetch_service_announcements()
@@ -302,3 +302,5 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
     fetch_data()
+    app.logger(routes.keys())
+    app.logger(stops.keys())
