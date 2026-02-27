@@ -65,7 +65,7 @@ def get_stops():
 @app.route('/buses')
 def get_buses():
     fetch_data()
-    with open('vehicles.json', 'r') as file:
+    with open('buses.json', 'r') as file:
         vehicles = json.load(file)
         return jsonify(vehicles)
 
@@ -131,7 +131,7 @@ def update_clean():
                 "stops": stopNames,
                 "etas": etas
             })
-    with open('vehicles.json', 'w') as file:
+    with open('buses.json', 'w') as file:
         json.dump(buses, file)
 def fetch_daily_data():
     announcements = fetch_service_announcements()
@@ -302,3 +302,5 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
     fetch_data()
+    app.logger(routes.keys())
+    app.logger(stops.keys())
