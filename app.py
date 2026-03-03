@@ -280,6 +280,7 @@ def fetch_routes():
                 "name": route["name"],
                 "color": route["color"],
                 "stopIDs": route["stops"],
+                "encodedLine": route["encLine"],
                 "stopNames": []
             }
         return routes
