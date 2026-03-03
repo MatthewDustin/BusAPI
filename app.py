@@ -7,8 +7,6 @@ from flask import Flask, render_template, jsonify
 import requests
 from requests import RequestException
 app = Flask(__name__)
-
-# Configure logging to show INFO messages
 logging.basicConfig(level=logging.INFO)
 app.logger.setLevel(logging.INFO)
 routes = {}
@@ -66,8 +64,6 @@ def get_routes():
         routes = json.load(file)
         return jsonify(list(routes.values()))
 
-
-
 @app.route('/stops')
 def get_stops():
     global stops
@@ -86,7 +82,7 @@ def fetch_data():
     global routes, stops
     if (not os.path.isfile('stops.json')) or (not os.path.isfile('routes.json')) or (not os.path.isfile('announcements.json')) or (os.path.getmtime('stops.json') + 57600) < time.time():
         fetch_daily_data()
-    if (not os.path.isfile('vehicles.json')) or (os.path.getmtime('vehicles.json') + 25) < time.time():
+    if (not os.path.isfile('vehicles.json')) or (os.path.getmtime('vehicles.json') + 12) < time.time():
         vehicles = fetch_vehicles()
         with open('vehicles.json', 'w') as file:
             json.dump(vehicles, file)
