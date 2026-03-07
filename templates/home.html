@@ -51,16 +51,10 @@
         // create a layer group to hold stops
         var stopGroup = L.layerGroup().addTo(map);
 
-        function showRoute(routeID) {
-            let stopIDList = routes[routeID].stops;
-
-            let stopList = []
-            stopIDList.forEach(function(stopID) {
-                let stop = stops[stopID];
-                stopList.push(stop);
-            });
+        function showRoute(route) {
             stopGroup.clearLayers();
-            stopList.forEach(function(stop) {
+            routes[route].stops.forEach(function(stopName) {
+                let stop = stops[stopName];
                 let popup = `<div class='stopIcon'><b>${stop.name}</b><br>${stop.lat}, ${stop.lng}</div>`;
                 L.marker([stop.lat, stop.lng], {icon: stopIcon, alt: stop.name + " Stop", autoPanOnFocus: true})
                     .bindPopup(popup)
@@ -69,7 +63,7 @@
         }
 
         function updateMap() {
-            fetch('/vehicles')
+            fetch('/buses')
                 .then(response => response.json())
                 .then(data => {
                     // 2. Clear existing markers so they don't stack up
@@ -77,11 +71,15 @@
 
                     // 3. Loop through new data and add markers to the group
                     data.forEach(function(m) {
-                        let color = String(m.route_color).replace(/^['"]|['"]$/g, '');
-                        let popup = `<div class='busIcon' style="border-color: ${color}"><b>Route:</b> ${m.route_name}<br><b>Next Stops:</b><br> ${m.stop1 }<b> ${m.stop1_eta}</b><br> ${m.stop2 }<b> ${m.stop2_eta}</b><br> ${m.stop3 }<b> ${m.stop3_eta}</b></div>`;
-                        L.marker([m.lat, m.lng], {icon: busIcon, alt: m.route_name + " Bus", autoPanOnFocus: true})
+                        let color = String(routes[m.route].color).replace(/^['"]|['"]$/g, '');
+                        var popup = `<div class='busIcon' style="border-color: ${color}"><b>Route:</b> ${m.route}<br><b>Next Stops:</b>`;
+                        for (let i = 0; i < m.stops.length; i++) {
+                            popup += `<br> ${m.stops[i] }<b> ${m.etas[i]}</b>`
+                        }
+                        popup += `</div>`;
+                        L.marker([m.lat, m.lng], {icon: busIcon, alt: m.route + " Bus", autoPanOnFocus: true})
                             .bindPopup(popup)
-                            .on('click', function() { showRoute(m.route_id); })
+                            .on('click', function() { showRoute(m.route); })
                             .addTo(markerGroup);
                     });
 
@@ -91,8 +89,17 @@
         }
 
         Promise.all([
-            fetch('/stops').then(response => response.json()).then(data => { stops = data; }),
-            fetch('/routes').then(response => response.json()).then(data => { routes = data; })
+            fetch('/stops').then(response => response.json()).then(data => {
+                data.forEach(function(stop) {
+                    stops[stop.name] = stop;
+                });
+            }),
+
+            fetch('/routes').then(response => response.json()).then(data => {
+                data.forEach(function(route) {
+                    routes[route.name] = route;
+                });
+            })
         ])
         .then(() => {
             updateMap();

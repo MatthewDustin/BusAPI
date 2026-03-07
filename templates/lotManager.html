@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Parking Lot Manager</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d1117;
+      --panel:    #161b22;
+      --border:   #30363d;
+      --accent:   #3fb950;
+      --accent2:  #58a6ff;
+      --danger:   #f85149;
+      --text:     #e6edf3;
+      --muted:    #8b949e;
+      --hover:    #21262d;
+    }
+
+    html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    #app { display: flex; height: 100vh; overflow: hidden; }
+
+    /* ── Sidebar ─────────────────────────────────────────────── */
+    #sidebar {
+      width: 320px;
+      min-width: 320px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #sidebar-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    #sidebar-header .eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    #sidebar-header h1 {
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -.01em;
+    }
+
+    #sidebar-header p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    /* Mode strip */
+    #mode-strip {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 7px 0;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .mode-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+    .mode-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+    .mode-btn.danger.active { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+    /* Lot list */
+    #lot-list-wrap {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+    #lot-list-wrap::-webkit-scrollbar { width: 4px; }
+    #lot-list-wrap::-webkit-scrollbar-track { background: transparent; }
+    #lot-list-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .lot-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      position: relative;
+    }
+    .lot-card:hover { border-color: var(--accent2); background: var(--hover); }
+    .lot-card.selected { border-color: var(--accent); background: var(--hover); }
+
+    .lot-card-name {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      padding-right: 48px;
+    }
+    .lot-card-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .lot-card-meta span { color: var(--accent); }
+
+    .lot-card-actions {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity .15s;
+    }
+    .lot-card:hover .lot-card-actions { opacity: 1; }
+
+    .icon-btn {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--muted);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      transition: all .15s;
+    }
+    .icon-btn:hover { border-color: var(--accent2); color: var(--accent2); background: var(--hover); }
+    .icon-btn.del:hover { border-color: var(--danger); color: var(--danger); }
+
+    .no-lots {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 32px 16px;
+      line-height: 1.6;
+    }
+    .no-lots strong { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+
+    /* Sidebar footer */
+    #sidebar-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
+    #sidebar-footer #lot-count { color: var(--accent); }
+
+    /* ── Map ─────────────────────────────────────────────────── */
+    #map { flex: 1; z-index: 0; }
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    #modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.6);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    #modal-overlay.open { display: flex; }
+
+    #modal {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 360px;
+      overflow: hidden;
+      box-shadow: 0 24px 48px rgba(0,0,0,.5);
+      animation: modal-in .2s ease;
+    }
+    @keyframes modal-in { from { transform: scale(.96) translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    #modal-header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    #modal-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    #modal-close {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    #modal-close:hover { border-color: var(--danger); color: var(--danger); }
+
+    #modal-body { padding: 20px; }
+
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .field input {
+      width: 100%;
+      padding: 9px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .field input:focus { border-color: var(--accent2); }
+
+    #modal-footer {
+      padding: 0 20px 20px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 9px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-cancel { background: transparent; color: var(--muted); }
+    .btn-cancel:hover { border-color: var(--text); color: var(--text); }
+    .btn-save { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+    .btn-save:hover { filter: brightness(1.1); }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 13px;
+      color: var(--text);
+      z-index: 3000;
+      opacity: 0;
+      transition: opacity .2s, transform .2s;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.success { border-color: var(--accent); }
+    #toast.error   { border-color: var(--danger); }
+
+    /* Leaflet draw toolbar tweak for dark map */
+    .leaflet-draw-toolbar a { background-color: #1c2128 !important; border-color: var(--border) !important; color: var(--text) !important; }
+    .leaflet-draw-toolbar a:hover { background-color: var(--hover) !important; }
+    .leaflet-bar a, .leaflet-bar a:hover { background-color: #1c2128; border-color: var(--border); color: var(--text); }
+
+    /* Status bar on map */
+    #map-status {
+      position: absolute;
+      bottom: 28px;
+      right: 16px;
+      z-index: 800;
+      background: rgba(13,17,23,.88);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      pointer-events: none;
+    }
+    #map-status span { color: var(--accent2); }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Sidebar ── -->
+  <aside id="sidebar">
+    <div id="sidebar-header">
+      <div class="eyebrow">Lot Manager</div>
+      <h1>Parking Lots</h1>
+      <p>Draw polygons on the map to define lots. Hover for info.</p>
+    </div>
+
+    <div id="mode-strip">
+      <button class="mode-btn active" id="btn-draw" title="Draw a new lot">＋ Draw</button>
+      <button class="mode-btn" id="btn-edit" title="Edit existing polygons">✎ Edit</button>
+      <button class="mode-btn danger" id="btn-delete" title="Delete polygons">✕ Delete</button>
+    </div>
+
+    <div id="lot-list-wrap">
+      <div class="no-lots" id="empty-state">
+        <strong>No lots yet</strong>
+        Click "Draw" then trace a polygon on the map to add a parking lot.
+      </div>
+      <div id="lot-list"></div>
+    </div>
+
+    <div id="sidebar-footer">
+      <span>TOTAL LOTS</span>
+      <span id="lot-count">0</span>
+    </div>
+  </aside>
+
+  <!-- ── Map ── -->
+  <div id="map"></div>
+  <div id="map-status">Lat <span id="s-lat">—</span> &nbsp; Lng <span id="s-lng">—</span></div>
+
+</div>
+
+<!-- ── Modal ── -->
+<div id="modal-overlay">
+  <div id="modal">
+    <div id="modal-header">
+      <span id="modal-title">New Parking Lot</span>
+      <button id="modal-close">✕</button>
+    </div>
+    <div id="modal-body">
+      <div class="field">
+        <label>Lot Name</label>
+        <input type="text" id="f-name" placeholder="e.g. Library Lot A" />
+      </div>
+      <div class="field">
+        <label>Number of Spaces</label>
+        <input type="number" id="f-spaces" placeholder="e.g. 120" min="0" />
+      </div>
+    </div>
+    <div id="modal-footer">
+      <button class="btn btn-cancel" id="btn-modal-cancel">Cancel</button>
+      <button class="btn btn-save"   id="btn-modal-save">Save Lot</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ── Config ────────────────────────────────────────────────────────────────
+  const CENTER = [36.215777, -81.679573];
+  const ZOOM   = 16;
+
+  // ── Map init ──────────────────────────────────────────────────────────────
+  const map = L.map('map', { zoomControl: true }).setView(CENTER, ZOOM);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    maxZoom: 20,
+  }).addTo(map);
+
+  // Status bar lat/lng
+  map.on('mousemove', e => {
+    document.getElementById('s-lat').textContent = e.latlng.lat.toFixed(6);
+    document.getElementById('s-lng').textContent = e.latlng.lng.toFixed(6);
+  });
+
+  // ── Draw layers ───────────────────────────────────────────────────────────
+  const drawnItems = new L.FeatureGroup().addTo(map);
+
+  const drawControl = new L.Control.Draw({
+    draw: {
+      polygon:   { shapeOptions: { color: '#3fb950', fillColor: '#3fb950', fillOpacity: .25, weight: 2 } },
+      polyline:  false,
+      rectangle: { shapeOptions: { color: '#3fb950', fillColor: '#3fb950', fillOpacity: .25, weight: 2 } },
+      circle:    false,
+      circlemarker: false,
+      marker:    false,
+    },
+    edit: {
+      featureGroup: drawnItems,
+      edit: { selectedPathOptions: { color: '#58a6ff', fillOpacity: .35 } },
+      remove: true,
+    },
+  });
+  map.addControl(drawControl);
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  // lotId → { layer, data }
+  const lots = {};
+  let pendingLayer  = null;   // layer awaiting modal save
+  let editingLotId  = null;   // lot being edited in modal
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function toast(msg, type = 'success') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'show ' + type;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.className = ''; }, 2600);
+  }
+
+  function latlngsToCoords(latlngs) {
+    // Leaflet polygon: array of LatLng or array-of-arrays for holes
+    const ring = Array.isArray(latlngs[0]) ? latlngs[0] : latlngs;
+    return ring.map(ll => [ll.lat ?? ll[0], ll.lng ?? ll[1]]);
+  }
+
+  function coordsToLatLngs(coords) {
+    return coords.map(c => L.latLng(c[0], c[1]));
+  }
+
+  function makeTooltip(name, spaces) {
+    return `<div style="font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.7;padding:2px 4px">
+      <strong style="font-size:13px;font-family:'DM Sans',sans-serif">${name}</strong><br>
+      <span style="color:#8b949e">Spaces:</span> <span style="color:#3fb950">${spaces}</span>
+    </div>`;
+  }
+
+  function attachLayerEvents(layer, id) {
+    layer.bindTooltip(makeTooltip(lots[id].data.name, lots[id].data.spaces), {
+      sticky: true, opacity: .96,
+      className: 'lot-tooltip',
+    });
+
+    layer.on('click', () => {
+      openEditModal(id);
+    });
+
+    layer.on('mouseover', function () {
+      this.setStyle({ fillOpacity: .45 });
+    });
+    layer.on('mouseout', function () {
+      this.setStyle({ fillOpacity: .25 });
+    });
+  }
+
+  // ── Sidebar render ────────────────────────────────────────────────────────
+  function renderSidebar() {
+    const ids  = Object.keys(lots);
+    const list = document.getElementById('lot-list');
+    const empty = document.getElementById('empty-state');
+    document.getElementById('lot-count').textContent = ids.length;
+
+    if (ids.length === 0) { list.innerHTML = ''; empty.style.display = ''; return; }
+    empty.style.display = 'none';
+
+    list.innerHTML = ids.map(id => {
+      const d = lots[id].data;
+      return `<div class="lot-card" data-id="${id}" onclick="flyTo(${id})">
+        <div class="lot-card-name">${d.name}</div>
+        <div class="lot-card-meta"><span>${d.spaces}</span> spaces</div>
+        <div class="lot-card-actions">
+          <button class="icon-btn" onclick="event.stopPropagation();openEditModal(${id})" title="Edit">✎</button>
+          <button class="icon-btn del" onclick="event.stopPropagation();deleteLot(${id})" title="Delete">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  window.flyTo = function (id) {
+    if (!lots[id]) return;
+    map.fitBounds(lots[id].layer.getBounds(), { padding: [40, 40] });
+    document.querySelectorAll('.lot-card').forEach(c => c.classList.remove('selected'));
+    document.querySelector(`.lot-card[data-id="${id}"]`)?.classList.add('selected');
+  };
+
+  // ── API calls ─────────────────────────────────────────────────────────────
+  async function apiGet() {
+    const r = await fetch('/api/lots');
+    return r.json();
+  }
+
+  async function apiCreate(name, spaces, coordinates) {
+    const r = await fetch('/api/lots', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, spaces, coordinates }),
+    });
+    if (!r.ok) throw new Error('Create failed');
+    return r.json();
+  }
+
+  async function apiUpdate(id, name, spaces, coordinates) {
+    const r = await fetch(`/api/lots/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, spaces, coordinates }),
+    });
+    if (!r.ok) throw new Error('Update failed');
+    return r.json();
+  }
+
+  async function apiDelete(id) {
+    const r = await fetch(`/api/lots/${id}`, { method: 'DELETE' });
+    if (!r.ok) throw new Error('Delete failed');
+    return r.json();
+  }
+
+  // ── Load existing lots on page load ──────────────────────────────────────
+  async function loadLots() {
+    const data = await apiGet();
+    data.forEach(d => addLotToMap(d));
+    renderSidebar();
+  }
+
+  function addLotToMap(d) {
+    const latlngs = coordsToLatLngs(d.coordinates);
+    const layer = L.polygon(latlngs, {
+      color: '#3fb950', fillColor: '#3fb950', fillOpacity: .25, weight: 2,
+    }).addTo(drawnItems);
+
+    lots[d.id] = { layer, data: d };
+    attachLayerEvents(layer, d.id);
+  }
+
+  // ── Draw: polygon created ─────────────────────────────────────────────────
+  map.on(L.Draw.Event.CREATED, function (e) {
+    pendingLayer = e.layer;
+    editingLotId = null;
+    openModal('New Parking Lot', '', '');
+  });
+
+  // ── Draw: polygon edited ──────────────────────────────────────────────────
+  map.on(L.Draw.Event.EDITED, async function (e) {
+    const layers = e.layers;
+    const updates = [];
+    layers.eachLayer(layer => {
+      // find id by layer reference
+      const id = Object.keys(lots).find(k => lots[k].layer === layer);
+      if (id) updates.push({ id, layer });
+    });
+
+    for (const { id, layer } of updates) {
+      try {
+        const coords = latlngsToCoords(layer.getLatLngs()[0]);
+        const d = lots[id].data;
+        await apiUpdate(id, d.name, d.spaces, coords);
+        lots[id].data.coordinates = coords;
+        lots[id].layer = layer;
+        attachLayerEvents(layer, id);
+        toast(`"${d.name}" geometry updated`);
+      } catch { toast('Failed to save edit', 'error'); }
+    }
+  });
+
+  // ── Draw: polygon deleted via draw toolbar ────────────────────────────────
+  map.on(L.Draw.Event.DELETED, async function (e) {
+    const layers = e.layers;
+    layers.eachLayer(async layer => {
+      const id = Object.keys(lots).find(k => lots[k].layer === layer);
+      if (!id) return;
+      try {
+        await apiDelete(id);
+        delete lots[id];
+        renderSidebar();
+        toast('Lot deleted');
+      } catch { toast('Failed to delete lot', 'error'); }
+    });
+  });
+
+  // ── Modal ─────────────────────────────────────────────────────────────────
+  function openModal(title, name, spaces) {
+    document.getElementById('modal-title').textContent  = title;
+    document.getElementById('f-name').value   = name;
+    document.getElementById('f-spaces').value = spaces;
+    document.getElementById('modal-overlay').classList.add('open');
+    document.getElementById('f-name').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+    pendingLayer  = null;
+    editingLotId  = null;
+  }
+
+  window.openEditModal = function (id) {
+    editingLotId  = id;
+    pendingLayer  = null;
+    const d = lots[id].data;
+    openModal('Edit Parking Lot', d.name, d.spaces);
+  };
+
+  document.getElementById('modal-close').onclick  = closeModal;
+  document.getElementById('btn-modal-cancel').onclick = closeModal;
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  });
+
+  document.getElementById('btn-modal-save').onclick = async function () {
+    const name   = document.getElementById('f-name').value.trim();
+    const spaces = parseInt(document.getElementById('f-spaces').value) || 0;
+
+    if (!name) { document.getElementById('f-name').focus(); return; }
+
+    if (editingLotId !== null) {
+      // ── Update existing lot ──
+      try {
+        const d    = lots[editingLotId].data;
+        const coords = d.coordinates; // geometry unchanged
+        const updated = await apiUpdate(editingLotId, name, spaces, coords);
+        lots[editingLotId].data = updated;
+        // refresh tooltip
+        lots[editingLotId].layer.unbindTooltip();
+        attachLayerEvents(lots[editingLotId].layer, editingLotId);
+        renderSidebar();
+        toast(`"${name}" updated`);
+        closeModal();
+      } catch { toast('Failed to update', 'error'); }
+
+    } else if (pendingLayer) {
+      // ── Create new lot ──
+      try {
+        const coords  = latlngsToCoords(pendingLayer.getLatLngs()[0]);
+        const created = await apiCreate(name, spaces, coords);
+        pendingLayer.setStyle({ color: '#3fb950', fillColor: '#3fb950', fillOpacity: .25, weight: 2 });
+        drawnItems.addLayer(pendingLayer);
+        lots[created.id] = { layer: pendingLayer, data: created };
+        attachLayerEvents(pendingLayer, created.id);
+        renderSidebar();
+        toast(`"${name}" saved`);
+        closeModal();
+      } catch { toast('Failed to save lot', 'error'); }
+    }
+  };
+
+  // Enter key in modal
+  document.getElementById('modal').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('btn-modal-save').click();
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // ── Delete from sidebar ───────────────────────────────────────────────────
+  window.deleteLot = async function (id) {
+    if (!lots[id]) return;
+    const name = lots[id].data.name;
+    if (!confirm(`Delete "${name}"?`)) return;
+    try {
+      await apiDelete(id);
+      drawnItems.removeLayer(lots[id].layer);
+      delete lots[id];
+      renderSidebar();
+      toast(`"${name}" deleted`);
+    } catch { toast('Failed to delete', 'error'); }
+  };
+
+  // ── Mode buttons ──────────────────────────────────────────────────────────
+  // These are visual-only helpers; real draw/edit/delete is via the Leaflet.Draw toolbar.
+  // They trigger the corresponding draw toolbar buttons programmatically.
+  const modeButtons = {
+    draw:   document.getElementById('btn-draw'),
+    edit:   document.getElementById('btn-edit'),
+    delete: document.getElementById('btn-delete'),
+  };
+
+  function setActiveMode(mode) {
+    Object.values(modeButtons).forEach(b => b.classList.remove('active'));
+    modeButtons[mode].classList.add('active');
+  }
+
+  modeButtons.draw.addEventListener('click', () => {
+    setActiveMode('draw');
+    const btn = document.querySelector('.leaflet-draw-draw-polygon');
+    if (btn) btn.click();
+  });
+
+  modeButtons.edit.addEventListener('click', () => {
+    setActiveMode('edit');
+    const btn = document.querySelector('.leaflet-draw-edit-edit');
+    if (btn) btn.click();
+  });
+
+  modeButtons.delete.addEventListener('click', () => {
+    setActiveMode('delete');
+    const btn = document.querySelector('.leaflet-draw-edit-remove');
+    if (btn) btn.click();
+  });
+
+  // Reset mode button state when draw/edit/delete finishes
+  map.on('draw:drawstop draw:editstop draw:deletestop', () => setActiveMode('draw'));
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  loadLots();
+
+})();
+</script>
+</body>
+</html>
