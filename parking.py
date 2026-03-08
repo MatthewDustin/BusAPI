@@ -4,8 +4,8 @@ from app import db
 class FreeParkingSchedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     day_of_week = db.Column(db.String(20), nullable=False)
-    start_time = db.Column(db.String(5), nullable=False)  # Format: HH:MM
-    end_time = db.Column(db.String(5), nullable=False)    # Format: HH:MM
+    start_time = db.Column(db.String(5), nullable=True)  # Format: HH:MM
+    end_time = db.Column(db.String(5), nullable=True)    # Format: HH:MM
     parking_lot_id = db.Column(db.Integer, db.ForeignKey('parking_lot.id'), nullable=False)
 
     def to_dict(self):
@@ -20,8 +20,9 @@ class FreeParkingSchedule(db.Model):
 class SpecialParkingSchedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.String(10), nullable=False)  # Format: YYYY-MM-DD
-    start_time = db.Column(db.String(5), nullable=False)  # Format: HH:MM
-    end_time = db.Column(db.String(5), nullable=False)    # Format: HH:MM
+    repeats = db.Column(db.String(10), nullable=False)  # Format: "None", "Daily", "Weekly", etc
+    start_time = db.Column(db.String(5), nullable=True)  # Format: HH:MM
+    end_time = db.Column(db.String(5), nullable=True)    # Format: HH:MM
     tier = db.Column(db.String(20), nullable=False)  # e.g., "Free", "School", "Meter"
     parking_lot_id = db.Column(db.Integer, db.ForeignKey('parking_lot.id'), nullable=False)
 
@@ -29,6 +30,7 @@ class SpecialParkingSchedule(db.Model):
         return {
             "id": self.id,
             "date": self.date,
+            "repeats": self.repeats,
             "start_time": self.start_time,
             "end_time": self.end_time,
             "tier": self.tier,
@@ -44,6 +46,10 @@ class ParkingLot(db.Model):
     default_tier = db.Column(db.Text, nullable=False)
     owner = db.Column(db.String(100), nullable=True)
 
+    # Relationships
+    free_schedules = db.relationship('FreeParkingSchedule', backref='lot', lazy=True, cascade='all, delete-orphan')
+    special_schedules = db.relationship('SpecialParkingSchedule', backref='lot', lazy=True, cascade='all, delete-orphan')
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -51,5 +57,7 @@ class ParkingLot(db.Model):
             "spaces": self.spaces,
             "coordinates": json.loads(self.coordinates),
             "default_tier": self.default_tier,
-            "owner": self.owner
+            "owner": self.owner,
+            "free_schedules": [s.to_dict() for s in self.free_schedules],
+            "special_schedules": [s.to_dict() for s in self.special_schedules]
         }

@@ -36,6 +36,8 @@ def create_lot():
         name=data["name"],
         spaces=int(data.get("spaces", 0)),
         coordinates=json.dumps(data["coordinates"]),
+        default_tier=data["default_tier"],
+        owner=data.get("owner", None),
     )
     db.session.add(lot)
     db.session.commit()
@@ -52,6 +54,10 @@ def update_lot(lot_id):
         lot.spaces = int(data["spaces"])
     if "coordinates" in data:
         lot.coordinates = json.dumps(data["coordinates"])
+    if "default_tier" in data:
+        lot.default_tier = data["default_tier"]
+    if "owner" in data:
+        lot.owner = data["owner"]
 
     db.session.commit()
     return jsonify(lot.to_dict())
@@ -62,6 +68,77 @@ def delete_lot(lot_id):
     db.session.delete(lot)
     db.session.commit()
     return jsonify({"deleted": lot_id})
+
+@app.route('/api/schedules/free', methods=["POST"])
+def create_free_schedule():
+    data = request.get_json()
+    if not data or not data.get("day_of_week") or not data.get("parking_lot_id"):
+        return jsonify({"error": "day_of_week and parking_lot_id are required"}), 400
+
+    schedule = FreeParkingSchedule(
+        day_of_week=data["day_of_week"],
+        start_time=data.get("start_time"),
+        end_time=data.get("end_time"),
+        parking_lot_id=int(data["parking_lot_id"]),
+    )
+    db.session.add(schedule)
+    db.session.commit()
+    return jsonify(schedule.to_dict()), 201
+
+@app.route('/api/schedules/special', methods=["POST"])
+def create_special_schedule():
+    data = request.get_json()
+    if not data or not data.get("date") or not data.get("tier") or not data.get("parking_lot_id") or not data.get("repeats"):
+        return jsonify({"error": "date, tier, repeats, and parking_lot_id are required"}), 400
+
+    schedule = SpecialParkingSchedule(
+        date=data["date"],
+        start_time=data.get("start_time"),
+        end_time=data.get("end_time"),
+        tier=data["tier"],
+        repeats=data["repeats"],
+        parking_lot_id=int(data["parking_lot_id"]),
+    )
+
+    db.session.add(schedule)
+    db.session.commit()
+    return jsonify(schedule.to_dict()), 201
+
+@app.route('/api/schedules/<int:schedule_id>', methods=["PUT"])
+def update_schedule(schedule_id):
+    schedule = FreeParkingSchedule.query.get(schedule_id) or SpecialParkingSchedule.query.get(schedule_id)
+    if not schedule:
+        return jsonify({"error": "Schedule not found"}), 404
+
+    data = request.get_json()
+    if isinstance(schedule, FreeParkingSchedule):
+        if "day_of_week" in data:
+            schedule.day_of_week = data["day_of_week"]
+    else:
+        if "date" in data:
+            schedule.date = data["date"]
+        if "tier" in data:
+            schedule.tier = data["tier"]
+        if "repeats" in data:
+            schedule.repeats = data["repeats"]
+
+    if "start_time" in data:
+        schedule.start_time = data["start_time"]
+    if "end_time" in data:
+        schedule.end_time = data["end_time"]
+
+    db.session.commit()
+    return jsonify(schedule.to_dict())
+
+@app.route('/api/schedules/<int:schedule_id>', methods=["DELETE"])
+def delete_schedule(schedule_id):
+    schedule = FreeParkingSchedule.query.get(schedule_id) or SpecialParkingSchedule.query.get(schedule_id)
+    if not schedule:
+        return jsonify({"error": "Schedule not found"}), 404
+
+    db.session.delete(schedule)
+    db.session.commit()
+    return jsonify({"deleted": schedule_id})
 
 @app.route('/vehicles')
 def get_vehicles():

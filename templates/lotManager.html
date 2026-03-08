@@ -16,15 +16,15 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:       #0d1117;
-      --panel:    #161b22;
-      --border:   #30363d;
-      --accent:   #3fb950;
-      --accent2:  #58a6ff;
-      --danger:   #f85149;
-      --text:     #e6edf3;
-      --muted:    #8b949e;
-      --hover:    #21262d;
+      --bg:       #ffffff;
+      --panel:    #f6f8fa;
+      --border:   #d0d7de;
+      --accent:   #1a7f37;
+      --accent2:  #0969da;
+      --danger:   #da3633;
+      --text:     #24292f;
+      --muted:    #57606a;
+      --hover:    #f3f4f6;
     }
 
     html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
@@ -96,6 +96,39 @@
     .mode-btn:hover { border-color: var(--accent2); color: var(--accent2); }
     .mode-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
     .mode-btn.danger.active { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+    /* Map view selector */
+    #map-view-strip {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+    }
+
+    #map-view-select {
+      flex: 1;
+      padding: 8px 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    #map-view-select:hover {
+      border-color: var(--accent2);
+      background: var(--hover);
+    }
+
+    #map-view-select:focus {
+      outline: none;
+      border-color: var(--accent2);
+      box-shadow: 0 0 0 2px rgba(9, 105, 218, 0.1);
+    }
 
     /* Lot list */
     #lot-list-wrap {
@@ -199,7 +232,10 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       width: 360px;
+      max-height: 80vh;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
       box-shadow: 0 24px 48px rgba(0,0,0,.5);
       animation: modal-in .2s ease;
     }
@@ -258,12 +294,6 @@
     }
     .field input:focus { border-color: var(--accent2); }
 
-    #modal-footer {
-      padding: 0 20px 20px;
-      display: flex;
-      gap: 8px;
-    }
-
     .btn {
       flex: 1;
       padding: 9px;
@@ -302,10 +332,10 @@
     #toast.success { border-color: var(--accent); }
     #toast.error   { border-color: var(--danger); }
 
-    /* Leaflet draw toolbar tweak for dark map */
-    .leaflet-draw-toolbar a { background-color: #1c2128 !important; border-color: var(--border) !important; color: var(--text) !important; }
+    /* Leaflet draw toolbar tweak for light map */
+    .leaflet-draw-toolbar a { background-color: #ffffff !important; border-color: var(--border) !important; color: var(--text) !important; }
     .leaflet-draw-toolbar a:hover { background-color: var(--hover) !important; }
-    .leaflet-bar a, .leaflet-bar a:hover { background-color: #1c2128; border-color: var(--border); color: var(--text); }
+    .leaflet-bar a, .leaflet-bar a:hover { background-color: #ffffff; border-color: var(--border); color: var(--text); }
 
     /* Status bar on map */
     #map-status {
@@ -313,7 +343,7 @@
       bottom: 28px;
       right: 16px;
       z-index: 800;
-      background: rgba(13,17,23,.88);
+      background: rgba(255,255,255,.88);
       border: 1px solid var(--border);
       border-radius: 6px;
       padding: 6px 12px;
@@ -323,6 +353,146 @@
       pointer-events: none;
     }
     #map-status span { color: var(--accent2); }
+
+    /* Tabs */
+    #modal-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all .15s;
+    }
+
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* Scrollable content container */
+    #modal > div:not(#modal-header):not(#modal-footer):not(#modal-tabs) {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 20px;
+    }
+
+    .tab-content.active { display: block; }
+
+    #modal-footer {
+      padding: 0 20px 20px;
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+      border-top: 1px solid var(--border);
+      margin-top: 12px;
+    }
+
+    /* Schedules list */
+    .schedules-list {
+      margin-bottom: 16px;
+    }
+
+    .schedule-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .schedule-info {
+      flex: 1;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .schedule-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .schedule-btn {
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      transition: all .15s;
+    }
+
+    .schedule-btn:hover { border-color: var(--text); color: var(--text); }
+    .schedule-btn.del:hover { border-color: var(--danger); color: var(--danger); }
+
+    .add-schedule-btn {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px dashed var(--border);
+      background: transparent;
+      color: var(--accent);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .add-schedule-btn:hover { border-color: var(--accent); background: var(--hover); }
+
+    .schedule-form {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .schedule-form .field { margin-bottom: 10px; }
+
+    .schedule-form-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .schedule-form-actions button {
+      flex: 1;
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .schedule-form-actions .save { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+    .schedule-form-actions .save:hover { filter: brightness(1.1); }
   </style>
 </head>
 <body>
@@ -337,9 +507,17 @@
     </div>
 
     <div id="mode-strip">
-      <button class="mode-btn active" id="btn-draw" title="Draw a new lot">＋ Draw</button>
       <button class="mode-btn" id="btn-edit" title="Edit existing polygons">✎ Edit</button>
       <button class="mode-btn danger" id="btn-delete" title="Delete polygons">✕ Delete</button>
+    </div>
+
+    <div id="map-view-strip">
+      <select id="map-view-select" title="Choose map view">
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+        <option value="satellite">Satellite</option>
+        <option value="terrain">Terrain</option>
+      </select>
     </div>
 
     <div id="lot-list-wrap">
@@ -369,16 +547,47 @@
       <span id="modal-title">New Parking Lot</span>
       <button id="modal-close">✕</button>
     </div>
-    <div id="modal-body">
-      <div class="field">
-        <label>Lot Name</label>
-        <input type="text" id="f-name" placeholder="e.g. Library Lot A" />
+
+    <div id="modal-tabs">
+      <button class="tab-btn active" data-tab="info">Info</button>
+      <button class="tab-btn" data-tab="schedules">Schedules</button>
+    </div>
+
+    <div id="modal-content" style="overflow-y: auto; flex: 1;">
+      <div id="tab-info" class="tab-content active">
+        <div class="field">
+          <label>Lot Name</label>
+          <input type="text" id="f-name" placeholder="e.g. Library Lot A" />
+        </div>
+        <div class="field">
+          <label>Number of Spaces</label>
+          <input type="number" id="f-spaces" placeholder="e.g. 120" min="0" />
+        </div>
+        <div class="field">
+          <label>Default Tier</label>
+          <input type="text" id="f-tier" placeholder="e.g. Free, School, Meter" />
+        </div>
+        <div class="field">
+          <label>Owner</label>
+          <input type="text" id="f-owner" placeholder="e.g. City Parking" />
+        </div>
       </div>
-      <div class="field">
-        <label>Number of Spaces</label>
-        <input type="number" id="f-spaces" placeholder="e.g. 120" min="0" />
+
+      <div id="tab-schedules" class="tab-content">
+        <div style="margin-bottom: 16px;">
+          <strong style="font-size: 12px; color: var(--accent); text-transform: uppercase; font-family: 'IBM Plex Mono', monospace; letter-spacing: .08em;">Free Parking Schedules</strong>
+          <div id="free-schedules-list" class="schedules-list" style="margin-top: 10px;"></div>
+          <button class="add-schedule-btn" id="add-free-btn">+ Add Free Schedule</button>
+        </div>
+
+        <div>
+          <strong style="font-size: 12px; color: var(--accent); text-transform: uppercase; font-family: 'IBM Plex Mono', monospace; letter-spacing: .08em;">Special Parking Schedules</strong>
+          <div id="special-schedules-list" class="schedules-list" style="margin-top: 10px;"></div>
+          <button class="add-schedule-btn" id="add-special-btn">+ Add Special Schedule</button>
+        </div>
       </div>
     </div>
+
     <div id="modal-footer">
       <button class="btn btn-cancel" id="btn-modal-cancel">Cancel</button>
       <button class="btn btn-save"   id="btn-modal-save">Save Lot</button>
@@ -402,10 +611,29 @@
   // ── Map init ──────────────────────────────────────────────────────────────
   const map = L.map('map', { zoomControl: true }).setView(CENTER, ZOOM);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    maxZoom: 20,
-  }).addTo(map);
+  // ── Tile layer definitions ────────────────────────────────────────────────
+  const tileLayers = {
+    light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      maxZoom: 20,
+    }),
+    dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      maxZoom: 20,
+    }),
+    satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '&copy; Esri &copy; Digital Globe &copy; GeoEye &copy; Earthstar Geographics',
+      maxZoom: 20,
+    }),
+    terrain: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; OpenTopoMap',
+      maxZoom: 20,
+    }),
+  };
+
+  // Add initial light layer
+  let currentTileLayer = tileLayers.light;
+  currentTileLayer.addTo(map);
 
   // Status bar lat/lng
   map.on('mousemove', e => {
@@ -418,9 +646,9 @@
 
   const drawControl = new L.Control.Draw({
     draw: {
-      polygon:   { shapeOptions: { color: '#3fb950', fillColor: '#3fb950', fillOpacity: .25, weight: 2 } },
+      polygon:   { shapeOptions: { color: '#1a7f37', fillColor: '#1a7f37', fillOpacity: .25, weight: 2 } },
       polyline:  false,
-      rectangle: { shapeOptions: { color: '#3fb950', fillColor: '#3fb950', fillOpacity: .25, weight: 2 } },
+      rectangle: false,
       circle:    false,
       circlemarker: false,
       marker:    false,
@@ -438,6 +666,8 @@
   const lots = {};
   let pendingLayer  = null;   // layer awaiting modal save
   let editingLotId  = null;   // lot being edited in modal
+  let editingScheduleId = null; // schedule being edited
+  let editingScheduleType = null; // 'free' or 'special'
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   function toast(msg, type = 'success') {
@@ -461,7 +691,7 @@
   function makeTooltip(name, spaces) {
     return `<div style="font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.7;padding:2px 4px">
       <strong style="font-size:13px;font-family:'DM Sans',sans-serif">${name}</strong><br>
-      <span style="color:#8b949e">Spaces:</span> <span style="color:#3fb950">${spaces}</span>
+      <span style="color:#57606a">Spaces:</span> <span style="color:#1a7f37">${spaces}</span>
     </div>`;
   }
 
@@ -519,21 +749,21 @@
     return r.json();
   }
 
-  async function apiCreate(name, spaces, coordinates) {
+  async function apiCreate(name, spaces, coordinates, defaultTier, owner) {
     const r = await fetch('/api/lots', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, spaces, coordinates }),
+      body: JSON.stringify({ name, spaces, coordinates, default_tier: defaultTier, owner }),
     });
     if (!r.ok) throw new Error('Create failed');
     return r.json();
   }
 
-  async function apiUpdate(id, name, spaces, coordinates) {
+  async function apiUpdate(id, name, spaces, coordinates, defaultTier, owner) {
     const r = await fetch(`/api/lots/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, spaces, coordinates }),
+      body: JSON.stringify({ name, spaces, coordinates, default_tier: defaultTier, owner }),
     });
     if (!r.ok) throw new Error('Update failed');
     return r.json();
@@ -542,6 +772,55 @@
   async function apiDelete(id) {
     const r = await fetch(`/api/lots/${id}`, { method: 'DELETE' });
     if (!r.ok) throw new Error('Delete failed');
+    return r.json();
+  }
+
+  // Schedule API calls
+  async function apiCreateFreeSchedule(lotId, dayOfWeek, startTime, endTime) {
+    const r = await fetch('/api/schedules/free', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        parking_lot_id: lotId,
+        day_of_week: dayOfWeek,
+        start_time: startTime,
+        end_time: endTime,
+      }),
+    });
+    if (!r.ok) throw new Error('Create schedule failed');
+    return r.json();
+  }
+
+  async function apiCreateSpecialSchedule(lotId, date, startTime, endTime, tier, repeats) {
+    const r = await fetch('/api/schedules/special', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        parking_lot_id: lotId,
+        date,
+        start_time: startTime,
+        end_time: endTime,
+        tier,
+        repeats,
+      }),
+    });
+    if (!r.ok) throw new Error('Create schedule failed');
+    return r.json();
+  }
+
+  async function apiUpdateSchedule(scheduleId, data) {
+    const r = await fetch(`/api/schedules/${scheduleId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!r.ok) throw new Error('Update schedule failed');
+    return r.json();
+  }
+
+  async function apiDeleteSchedule(scheduleId) {
+    const r = await fetch(`/api/schedules/${scheduleId}`, { method: 'DELETE' });
+    if (!r.ok) throw new Error('Delete schedule failed');
     return r.json();
   }
 
@@ -555,7 +834,7 @@
   function addLotToMap(d) {
     const latlngs = coordsToLatLngs(d.coordinates);
     const layer = L.polygon(latlngs, {
-      color: '#3fb950', fillColor: '#3fb950', fillOpacity: .25, weight: 2,
+      color: '#1a7f37', fillColor: '#1a7f37', fillOpacity: .25, weight: 2,
     }).addTo(drawnItems);
 
     lots[d.id] = { layer, data: d };
@@ -566,7 +845,7 @@
   map.on(L.Draw.Event.CREATED, function (e) {
     pendingLayer = e.layer;
     editingLotId = null;
-    openModal('New Parking Lot', '', '');
+    openModal('New Parking Lot', '', '', '', '');
   });
 
   // ── Draw: polygon edited ──────────────────────────────────────────────────
@@ -583,7 +862,7 @@
       try {
         const coords = latlngsToCoords(layer.getLatLngs()[0]);
         const d = lots[id].data;
-        await apiUpdate(id, d.name, d.spaces, coords);
+        await apiUpdate(id, d.name, d.spaces, coords, d.default_tier, d.owner);
         lots[id].data.coordinates = coords;
         lots[id].layer = layer;
         attachLayerEvents(layer, id);
@@ -608,25 +887,46 @@
   });
 
   // ── Modal ─────────────────────────────────────────────────────────────────
-  function openModal(title, name, spaces) {
+  function openModal(title, name, spaces, defaultTier = '', owner = '') {
     document.getElementById('modal-title').textContent  = title;
     document.getElementById('f-name').value   = name;
     document.getElementById('f-spaces').value = spaces;
+    document.getElementById('f-tier').value   = defaultTier;
+    document.getElementById('f-owner').value  = owner;
     document.getElementById('modal-overlay').classList.add('open');
     document.getElementById('f-name').focus();
+
+    // Reset to info tab
+    switchTab('info');
+    renderSchedulesUI();
+  }
+
+  function switchTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+    // Show selected tab
+    const tabEl = document.getElementById(`tab-${tabName}`);
+    if (tabEl) tabEl.classList.add('active');
+
+    const btnEl = document.querySelector(`[data-tab="${tabName}"]`);
+    if (btnEl) btnEl.classList.add('active');
   }
 
   function closeModal() {
     document.getElementById('modal-overlay').classList.remove('open');
     pendingLayer  = null;
     editingLotId  = null;
+    editingScheduleId = null;
+    editingScheduleType = null;
   }
 
   window.openEditModal = function (id) {
     editingLotId  = id;
     pendingLayer  = null;
     const d = lots[id].data;
-    openModal('Edit Parking Lot', d.name, d.spaces);
+    openModal('Edit Parking Lot', d.name, d.spaces, d.default_tier, d.owner);
   };
 
   document.getElementById('modal-close').onclick  = closeModal;
@@ -635,9 +935,252 @@
     if (e.target === document.getElementById('modal-overlay')) closeModal();
   });
 
+  // ── Tab switching ──────────────────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  // ── Schedule UI rendering ──────────────────────────────────────────────────
+  function renderSchedulesUI() {
+    if (editingLotId === null && pendingLayer === null) return;
+
+    const lotData = editingLotId !== null ? lots[editingLotId].data : { free_schedules: [], special_schedules: [] };
+    const freeScheds = lotData.free_schedules || [];
+    const specialScheds = lotData.special_schedules || [];
+
+    // Render free schedules
+    const freeList = document.getElementById('free-schedules-list');
+    freeList.innerHTML = freeScheds.map(s => `
+      <div class="schedule-item">
+        <div class="schedule-info">
+          <strong>${s.day_of_week}</strong><br>
+          ${s.start_time || '—'} - ${s.end_time || '—'}
+        </div>
+        <div class="schedule-actions">
+          <button class="schedule-btn" onclick="editFreeSchedule(${s.id}, '${s.day_of_week}', '${s.start_time || ''}', '${s.end_time || ''}')">Edit</button>
+          <button class="schedule-btn del" onclick="deleteFreeSchedule(${s.id})">Delete</button>
+        </div>
+      </div>
+    `).join('');
+
+    // Render special schedules
+    const specialList = document.getElementById('special-schedules-list');
+    specialList.innerHTML = specialScheds.map(s => `
+      <div class="schedule-item">
+        <div class="schedule-info">
+          <strong>${s.date}</strong><br>
+          ${s.start_time || '—'} - ${s.end_time || '—'} <span style="color: var(--accent);">${s.tier}</span><br>
+          <span style="font-size: 11px; color: var(--muted);">Repeats: ${s.repeats}</span>
+        </div>
+        <div class="schedule-actions">
+          <button class="schedule-btn" onclick="editSpecialSchedule(${s.id}, '${s.date}', '${s.start_time || ''}', '${s.end_time || ''}', '${s.tier}', '${s.repeats}')">Edit</button>
+          <button class="schedule-btn del" onclick="deleteSpecialSchedule(${s.id})">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.editFreeSchedule = function (id, day, start, end) {
+    editingScheduleId = id;
+    editingScheduleType = 'free';
+    showFreeScheduleForm(id, day, start, end);
+  };
+
+  window.editSpecialSchedule = function (id, date, start, end, tier, repeats) {
+    editingScheduleId = id;
+    editingScheduleType = 'special';
+    showSpecialScheduleForm(id, date, start, end, tier, repeats);
+  };
+
+  window.deleteFreeSchedule = async function (id) {
+    if (!confirm('Delete this free schedule?')) return;
+    try {
+      await apiDeleteSchedule(id);
+      if (editingLotId !== null) {
+        lots[editingLotId].data.free_schedules = lots[editingLotId].data.free_schedules.filter(s => s.id !== id);
+      }
+      renderSchedulesUI();
+      toast('Schedule deleted');
+    } catch { toast('Failed to delete schedule', 'error'); }
+  };
+
+  window.deleteSpecialSchedule = async function (id) {
+    if (!confirm('Delete this special schedule?')) return;
+    try {
+      await apiDeleteSchedule(id);
+      if (editingLotId !== null) {
+        lots[editingLotId].data.special_schedules = lots[editingLotId].data.special_schedules.filter(s => s.id !== id);
+      }
+      renderSchedulesUI();
+      toast('Schedule deleted');
+    } catch { toast('Failed to delete schedule', 'error'); }
+  };
+
+  function showFreeScheduleForm(id = null, day = '', start = '', end = '') {
+    const freeList = document.getElementById('free-schedules-list');
+    const formId = `free-form-${id || 'new'}`;
+
+    // Check if form already exists
+    if (document.getElementById(formId)) return;
+
+    const form = document.createElement('div');
+    form.id = formId;
+    form.className = 'schedule-form';
+    form.innerHTML = `
+      <div class="field">
+        <label style="font-size: 10px;">Day of Week</label>
+        <input type="text" class="free-day" placeholder="e.g. Monday" value="${day}" />
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <div class="field" style="flex: 1; margin-bottom: 10px;">
+          <label style="font-size: 10px;">Start Time (optional)</label>
+          <input type="time" class="free-start" value="${start}" />
+        </div>
+        <div class="field" style="flex: 1; margin-bottom: 10px;">
+          <label style="font-size: 10px;">End Time (optional)</label>
+          <input type="time" class="free-end" value="${end}" />
+        </div>
+      </div>
+      <div class="schedule-form-actions">
+        <button class="save" onclick="saveFreeSchedule(${id})">Save</button>
+        <button onclick="cancelScheduleForm('${formId}')">Cancel</button>
+      </div>
+    `;
+
+    freeList.appendChild(form);
+  }
+
+  function showSpecialScheduleForm(id = null, date = '', start = '', end = '', tier = '', repeats = '') {
+    const specialList = document.getElementById('special-schedules-list');
+    const formId = `special-form-${id || 'new'}`;
+
+    // Check if form already exists
+    if (document.getElementById(formId)) return;
+
+    const form = document.createElement('div');
+    form.id = formId;
+    form.className = 'schedule-form';
+    form.innerHTML = `
+      <div style="display: flex; gap: 8px;">
+        <div class="field" style="flex: 1;">
+          <label style="font-size: 10px;">Date</label>
+          <input type="date" class="special-date" value="${date}" />
+        </div>
+        <div class="field" style="flex: 1;">
+          <label style="font-size: 10px;">Tier</label>
+          <input type="text" class="special-tier" placeholder="e.g. Free, Meter" value="${tier}" />
+        </div>
+      </div>
+      <div class="field">
+        <label style="font-size: 10px;">Repeats</label>
+        <input type="text" class="special-repeats" placeholder="e.g. None, Daily, Weekly" value="${repeats}" />
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <div class="field" style="flex: 1; margin-bottom: 10px;">
+          <label style="font-size: 10px;">Start Time (optional)</label>
+          <input type="time" class="special-start" value="${start}" />
+        </div>
+        <div class="field" style="flex: 1; margin-bottom: 10px;">
+          <label style="font-size: 10px;">End Time (optional)</label>
+          <input type="time" class="special-end" value="${end}" />
+        </div>
+      </div>
+      <div class="schedule-form-actions">
+        <button class="save" onclick="saveSpecialSchedule(${id})">Save</button>
+        <button onclick="cancelScheduleForm('${formId}')">Cancel</button>
+      </div>
+    `;
+
+    specialList.appendChild(form);
+  }
+
+  window.saveFreeSchedule = async function (id) {
+    const form = document.querySelector(`#free-form-${id || 'new'}`);
+    const day = form.querySelector('.free-day').value.trim();
+    const start = form.querySelector('.free-start').value;
+    const end = form.querySelector('.free-end').value;
+
+    if (!day) { toast('Day of week is required', 'error'); return; }
+
+    try {
+      if (id) {
+        // Update existing
+        await apiUpdateSchedule(id, { day_of_week: day, start_time: start, end_time: end });
+        if (editingLotId !== null) {
+          const sched = lots[editingLotId].data.free_schedules.find(s => s.id === id);
+          if (sched) {
+            sched.day_of_week = day;
+            sched.start_time = start;
+            sched.end_time = end;
+          }
+        }
+      } else {
+        // Create new
+        const created = await apiCreateFreeSchedule(editingLotId, day, start, end);
+        if (editingLotId !== null) {
+          lots[editingLotId].data.free_schedules.push(created);
+        }
+      }
+      renderSchedulesUI();
+      toast(id ? 'Schedule updated' : 'Schedule added');
+    } catch { toast('Failed to save schedule', 'error'); }
+  };
+
+  window.saveSpecialSchedule = async function (id) {
+    const form = document.querySelector(`#special-form-${id || 'new'}`);
+    const date = form.querySelector('.special-date').value;
+    const tier = form.querySelector('.special-tier').value.trim();
+    const repeats = form.querySelector('.special-repeats').value.trim();
+    const start = form.querySelector('.special-start').value;
+    const end = form.querySelector('.special-end').value;
+
+    if (!date || !tier || !repeats) { toast('Date, Tier, and Repeats are required', 'error'); return; }
+
+    try {
+      if (id) {
+        // Update existing
+        await apiUpdateSchedule(id, { date, start_time: start, end_time: end, tier, repeats });
+        if (editingLotId !== null) {
+          const sched = lots[editingLotId].data.special_schedules.find(s => s.id === id);
+          if (sched) {
+            sched.date = date;
+            sched.start_time = start;
+            sched.end_time = end;
+            sched.tier = tier;
+            sched.repeats = repeats;
+          }
+        }
+      } else {
+        // Create new
+        const created = await apiCreateSpecialSchedule(editingLotId, date, start, end, tier, repeats);
+        if (editingLotId !== null) {
+          lots[editingLotId].data.special_schedules.push(created);
+        }
+      }
+      renderSchedulesUI();
+      toast(id ? 'Schedule updated' : 'Schedule added');
+    } catch { toast('Failed to save schedule', 'error'); }
+  };
+
+  window.cancelScheduleForm = function (formId) {
+    const form = document.getElementById(formId);
+    if (form) form.remove();
+  };
+
+  // ── Add schedule button handlers ────────────────────────────────────────────
+  document.getElementById('add-free-btn').addEventListener('click', () => {
+    showFreeScheduleForm();
+  });
+
+  document.getElementById('add-special-btn').addEventListener('click', () => {
+    showSpecialScheduleForm();
+  });
+
   document.getElementById('btn-modal-save').onclick = async function () {
     const name   = document.getElementById('f-name').value.trim();
     const spaces = parseInt(document.getElementById('f-spaces').value) || 0;
+    const defaultTier = document.getElementById('f-tier').value.trim();
+    const owner = document.getElementById('f-owner').value.trim();
 
     if (!name) { document.getElementById('f-name').focus(); return; }
 
@@ -646,7 +1189,7 @@
       try {
         const d    = lots[editingLotId].data;
         const coords = d.coordinates; // geometry unchanged
-        const updated = await apiUpdate(editingLotId, name, spaces, coords);
+        const updated = await apiUpdate(editingLotId, name, spaces, coords, defaultTier, owner);
         lots[editingLotId].data = updated;
         // refresh tooltip
         lots[editingLotId].layer.unbindTooltip();
@@ -660,8 +1203,8 @@
       // ── Create new lot ──
       try {
         const coords  = latlngsToCoords(pendingLayer.getLatLngs()[0]);
-        const created = await apiCreate(name, spaces, coords);
-        pendingLayer.setStyle({ color: '#3fb950', fillColor: '#3fb950', fillOpacity: .25, weight: 2 });
+        const created = await apiCreate(name, spaces, coords, defaultTier, owner);
+        pendingLayer.setStyle({ color: '#1a7f37', fillColor: '#1a7f37', fillOpacity: .25, weight: 2 });
         drawnItems.addLayer(pendingLayer);
         lots[created.id] = { layer: pendingLayer, data: created };
         attachLayerEvents(pendingLayer, created.id);
@@ -696,21 +1239,14 @@
   // These are visual-only helpers; real draw/edit/delete is via the Leaflet.Draw toolbar.
   // They trigger the corresponding draw toolbar buttons programmatically.
   const modeButtons = {
-    draw:   document.getElementById('btn-draw'),
     edit:   document.getElementById('btn-edit'),
     delete: document.getElementById('btn-delete'),
   };
 
   function setActiveMode(mode) {
     Object.values(modeButtons).forEach(b => b.classList.remove('active'));
-    modeButtons[mode].classList.add('active');
+    if (modeButtons[mode]) modeButtons[mode].classList.add('active');
   }
-
-  modeButtons.draw.addEventListener('click', () => {
-    setActiveMode('draw');
-    const btn = document.querySelector('.leaflet-draw-draw-polygon');
-    if (btn) btn.click();
-  });
 
   modeButtons.edit.addEventListener('click', () => {
     setActiveMode('edit');
@@ -725,7 +1261,19 @@
   });
 
   // Reset mode button state when draw/edit/delete finishes
-  map.on('draw:drawstop draw:editstop draw:deletestop', () => setActiveMode('draw'));
+  map.on('draw:drawstop draw:editstop draw:deletestop', () => setActiveMode('edit'));
+
+  // ── Map view selector ──────────────────────────────────────────────────────
+  document.getElementById('map-view-select').addEventListener('change', (e) => {
+    const viewType = e.target.value;
+    if (tileLayers[viewType]) {
+      // Remove current layer
+      map.removeLayer(currentTileLayer);
+      // Add new layer
+      currentTileLayer = tileLayers[viewType];
+      currentTileLayer.addTo(map);
+    }
+  });
 
   // ── Init ──────────────────────────────────────────────────────────────────
   loadLots();
