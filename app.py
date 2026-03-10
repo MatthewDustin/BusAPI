@@ -38,6 +38,7 @@ def create_lot():
         coordinates=json.dumps(data["coordinates"]),
         default_tier=data["default_tier"],
         owner=data.get("owner", None),
+        visible=data.get("visible", False)
     )
     db.session.add(lot)
     db.session.commit()
@@ -58,6 +59,8 @@ def update_lot(lot_id):
         lot.default_tier = data["default_tier"]
     if "owner" in data:
         lot.owner = data["owner"]
+    if "visible" in data:
+        lot.visible = data["visible"]
 
     db.session.commit()
     return jsonify(lot.to_dict())
@@ -93,6 +96,7 @@ def create_special_schedule():
 
     schedule = SpecialParkingSchedule(
         date=data["date"],
+        end_date=data.get("end_date"),
         start_time=data.get("start_time"),
         end_time=data.get("end_time"),
         tier=data["tier"],
@@ -117,6 +121,8 @@ def update_schedule(schedule_id):
     else:
         if "date" in data:
             schedule.date = data["date"]
+        if "end_date" in data:
+            schedule.end_date = data["end_date"]
         if "tier" in data:
             schedule.tier = data["tier"]
         if "repeats" in data:

@@ -25,7 +25,7 @@ class SpecialParkingSchedule(db.Model):
     repeats = db.Column(db.String(10), nullable=False)  # Format: "None", "Daily", "Weekly", etc
     start_time = db.Column(db.String(5), nullable=True)  # Format: HH:MM
     end_time = db.Column(db.String(5), nullable=True)    # Format: HH:MM
-    tier = db.Column(db.String(20), nullable=False)  # e.g., "Free", "School", "Meter"
+    tier = db.Column(db.String(64), nullable=False)  # e.g., "Free", "School", "Meter"
     parking_lot_id = db.Column(db.Integer, db.ForeignKey('parking_lot.id'), nullable=False)
 
     def to_dict(self):
