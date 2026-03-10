@@ -65,17 +65,17 @@ def check_schedules(free, special, default_tier):
     #check special schedules next, which override free schedules
     for schedule in special:
         if schedule["end_date"]:
-            end_date = datetime.strptime(schedule["end_date"], "%Y-%m-%d").time()
-            if now.time() > end_date:
+            end_date = datetime.strptime(schedule["end_date"], "%Y-%m-%d").date()
+            if now.date() > end_date:
                 continue
-        start_date = datetime.strptime(schedule["date"], "%Y-%m-%d").time()
-        if now.time() < start_date:
+        start_date = datetime.strptime(schedule["date"], "%Y-%m-%d").date()
+        if now.date() < start_date:
             continue
         if schedule["date"] == current_date:
-            if schedule["start_time"]:
+            if schedule["start_time"] and schedule["start_time"].strip():
                 start_time = datetime.strptime(schedule["start_time"], "%H:%M").time()
                 if start_time <= now.time():
-                    if schedule["end_time"]:
+                    if schedule["end_time"] and schedule["end_time"].strip():
                         end_time = datetime.strptime(schedule["end_time"], "%H:%M").time()
                         if now.time() <= end_time:
                             tier = schedule["tier"]
@@ -84,10 +84,10 @@ def check_schedules(free, special, default_tier):
             else:
                 tier = schedule["tier"]
         elif schedule["repeats"] == "Daily":
-            if schedule["start_time"]:
+            if schedule["start_time"] and schedule["start_time"].strip():
                 start_time = datetime.strptime(schedule["start_time"], "%H:%M").time()
                 if start_time <= now.time():
-                    if schedule["end_time"]:
+                    if schedule["end_time"] and schedule["end_time"].strip():
                         end_time = datetime.strptime(schedule["end_time"], "%H:%M").time()
                         if now.time() <= end_time:
                             tier = schedule["tier"]
@@ -98,10 +98,10 @@ def check_schedules(free, special, default_tier):
         elif schedule["repeats"] == "Weekly":
             #check if today is the same day of week as the original date
             if start_date.strftime("%A") == current_day:
-                if schedule["start_time"]:
+                if schedule["start_time"] and schedule["start_time"].strip():
                     start_time = datetime.strptime(schedule["start_time"], "%H:%M").time()
                     if start_time <= now.time():
-                        if schedule["end_time"]:
+                        if schedule["end_time"] and schedule["end_time"].strip():
                             end_time = datetime.strptime(schedule["end_time"], "%H:%M").time()
                             if now.time() <= end_time:
                                 tier = schedule["tier"]
@@ -112,10 +112,10 @@ def check_schedules(free, special, default_tier):
         elif schedule["repeats"] == "Monthly":
             #check if today is the same day of month as the original date
             if start_date.day == now.day:
-                if schedule["start_time"]:
+                if schedule["start_time"] and schedule["start_time"].strip():
                     start_time = datetime.strptime(schedule["start_time"], "%H:%M").time()
                     if start_time <= now.time():
-                        if schedule["end_time"]:
+                        if schedule["end_time"] and schedule["end_time"].strip():
                             end_time = datetime.strptime(schedule["end_time"], "%H:%M").time()
                             if now.time() <= end_time:
                                 tier = schedule["tier"]
@@ -126,10 +126,10 @@ def check_schedules(free, special, default_tier):
         elif schedule["repeats"] == "Annually":
             #check if today is the same month and day as the original date
             if start_date.month == now.month and start_date.day == now.day:
-                if schedule["start_time"]:
+                if schedule["start_time"] and schedule["start_time"].strip():
                     start_time = datetime.strptime(schedule["start_time"], "%H:%M").time()
                     if start_time <= now.time():
-                        if schedule["end_time"]:
+                        if schedule["end_time"] and schedule["end_time"].strip():
                             end_time = datetime.strptime(schedule["end_time"], "%H:%M").time()
                             if now.time() <= end_time:
                                 tier = schedule["tier"]

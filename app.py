@@ -1,5 +1,5 @@
 import os, json, time, logging
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from bus import fetch_data
 
@@ -13,6 +13,11 @@ from parking import ParkingLot, FreeParkingSchedule, SpecialParkingSchedule
 
 with app.app_context():
     db.create_all()
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(app.root_path, 'favicon.ico')
+
 @app.route('/')
 def home():
     return render_template('home.html')
