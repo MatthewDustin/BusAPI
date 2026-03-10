@@ -1044,10 +1044,14 @@
     const form = document.createElement('div');
     form.id = formId;
     form.className = 'schedule-form';
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     form.innerHTML = `
       <div class="field">
         <label style="font-size: 10px;">Day of Week</label>
-        <input type="text" class="free-day" placeholder="e.g. Monday" value="${day}" />
+        <select class="free-day">
+          <option value="">Select a day...</option>
+          ${days.map(d => `<option value="${d}" ${day === d ? 'selected' : ''}>${d}</option>`).join('')}
+        </select>
       </div>
       <div style="display: flex; gap: 8px;">
         <div class="field" style="flex: 1; margin-bottom: 10px;">
