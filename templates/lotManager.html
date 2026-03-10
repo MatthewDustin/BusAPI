@@ -280,7 +280,8 @@
       color: var(--muted);
       margin-bottom: 6px;
     }
-    .field input {
+    .field input,
+    .field select {
       width: 100%;
       padding: 9px 12px;
       background: var(--bg);
@@ -292,7 +293,8 @@
       outline: none;
       transition: border-color .15s;
     }
-    .field input:focus { border-color: var(--accent2); }
+    .field input:focus,
+    .field select:focus { border-color: var(--accent2); }
 
     .btn {
       flex: 1;
@@ -565,11 +567,25 @@
         </div>
         <div class="field">
           <label>Default Tier</label>
-          <input type="text" id="f-tier" placeholder="e.g. Free, School, Meter" />
+          <select id="f-tier">
+            <option value="">Select a tier...</option>
+            <option value="Private">Private</option>
+            <option value="AppState Faculty">AppState Faculty</option>
+            <option value="AppState Parking Pass">AppState Parking Pass</option>
+            <option value="Free">Free</option>
+            <option value="Game Day Parking Pass">Game Day Parking Pass</option>
+            <option value="Meter">Meter</option>
+            <option value="Cash Payments Only">Cash Payments Only</option>
+            <option value="Event Only">Event Only</option>
+          </select>
         </div>
         <div class="field">
           <label>Owner</label>
           <input type="text" id="f-owner" placeholder="e.g. City Parking" />
+        </div>
+        <div class="field" style="display: flex; align-items: center; margin-bottom: 16px;">
+          <input type="checkbox" id="f-visible" style="width: auto; margin-right: 8px;" />
+          <label style="margin-bottom: 0; color: var(--text);">Visible</label>
         </div>
       </div>
 
@@ -749,21 +765,21 @@
     return r.json();
   }
 
-  async function apiCreate(name, spaces, coordinates, defaultTier, owner) {
+  async function apiCreate(name, spaces, coordinates, defaultTier, owner, visible = true) {
     const r = await fetch('/api/lots', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, spaces, coordinates, default_tier: defaultTier, owner }),
+      body: JSON.stringify({ name, spaces, coordinates, default_tier: defaultTier, owner, visible }),
     });
     if (!r.ok) throw new Error('Create failed');
     return r.json();
   }
 
-  async function apiUpdate(id, name, spaces, coordinates, defaultTier, owner) {
+  async function apiUpdate(id, name, spaces, coordinates, defaultTier, owner, visible = true) {
     const r = await fetch(`/api/lots/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, spaces, coordinates, default_tier: defaultTier, owner }),
+      body: JSON.stringify({ name, spaces, coordinates, default_tier: defaultTier, owner, visible }),
     });
     if (!r.ok) throw new Error('Update failed');
     return r.json();
@@ -791,13 +807,14 @@
     return r.json();
   }
 
-  async function apiCreateSpecialSchedule(lotId, date, startTime, endTime, tier, repeats) {
+  async function apiCreateSpecialSchedule(lotId, date, endDate, startTime, endTime, tier, repeats) {
     const r = await fetch('/api/schedules/special', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         parking_lot_id: lotId,
         date,
+        end_date: endDate,
         start_time: startTime,
         end_time: endTime,
         tier,
@@ -862,7 +879,7 @@
       try {
         const coords = latlngsToCoords(layer.getLatLngs()[0]);
         const d = lots[id].data;
-        await apiUpdate(id, d.name, d.spaces, coords, d.default_tier, d.owner);
+        await apiUpdate(id, d.name, d.spaces, coords, d.default_tier, d.owner, d.visible);
         lots[id].data.coordinates = coords;
         lots[id].layer = layer;
         attachLayerEvents(layer, id);
@@ -887,12 +904,13 @@
   });
 
   // ── Modal ─────────────────────────────────────────────────────────────────
-  function openModal(title, name, spaces, defaultTier = '', owner = '') {
+  function openModal(title, name, spaces, defaultTier = '', owner = '', visible = true) {
     document.getElementById('modal-title').textContent  = title;
     document.getElementById('f-name').value   = name;
     document.getElementById('f-spaces').value = spaces;
     document.getElementById('f-tier').value   = defaultTier;
     document.getElementById('f-owner').value  = owner;
+    document.getElementById('f-visible').checked = visible;
     document.getElementById('modal-overlay').classList.add('open');
     document.getElementById('f-name').focus();
 
@@ -926,7 +944,7 @@
     editingLotId  = id;
     pendingLayer  = null;
     const d = lots[id].data;
-    openModal('Edit Parking Lot', d.name, d.spaces, d.default_tier, d.owner);
+    openModal('Edit Parking Lot', d.name, d.spaces, d.default_tier, d.owner, d.visible);
   };
 
   document.getElementById('modal-close').onclick  = closeModal;
@@ -968,12 +986,12 @@
     specialList.innerHTML = specialScheds.map(s => `
       <div class="schedule-item">
         <div class="schedule-info">
-          <strong>${s.date}</strong><br>
+          <strong>${s.date}${s.end_date ? ' → ' + s.end_date : ''}</strong><br>
           ${s.start_time || '—'} - ${s.end_time || '—'} <span style="color: var(--accent);">${s.tier}</span><br>
           <span style="font-size: 11px; color: var(--muted);">Repeats: ${s.repeats}</span>
         </div>
         <div class="schedule-actions">
-          <button class="schedule-btn" onclick="editSpecialSchedule(${s.id}, '${s.date}', '${s.start_time || ''}', '${s.end_time || ''}', '${s.tier}', '${s.repeats}')">Edit</button>
+          <button class="schedule-btn" onclick="editSpecialSchedule(${s.id}, '${s.date}', '${s.end_date || ''}', '${s.start_time || ''}', '${s.end_time || ''}', '${s.tier}', '${s.repeats}')">Edit</button>
           <button class="schedule-btn del" onclick="deleteSpecialSchedule(${s.id})">Delete</button>
         </div>
       </div>
@@ -986,10 +1004,10 @@
     showFreeScheduleForm(id, day, start, end);
   };
 
-  window.editSpecialSchedule = function (id, date, start, end, tier, repeats) {
+  window.editSpecialSchedule = function (id, date, endDate, start, end, tier, repeats) {
     editingScheduleId = id;
     editingScheduleType = 'special';
-    showSpecialScheduleForm(id, date, start, end, tier, repeats);
+    showSpecialScheduleForm(id, date, endDate, start, end, tier, repeats);
   };
 
   window.deleteFreeSchedule = async function (id) {
@@ -1050,7 +1068,7 @@
     freeList.appendChild(form);
   }
 
-  function showSpecialScheduleForm(id = null, date = '', start = '', end = '', tier = '', repeats = '') {
+  function showSpecialScheduleForm(id = null, date = '', endDate = '', start = '', end = '', tier = '', repeats = '') {
     const specialList = document.getElementById('special-schedules-list');
     const formId = `special-form-${id || 'new'}`;
 
@@ -1067,13 +1085,35 @@
           <input type="date" class="special-date" value="${date}" />
         </div>
         <div class="field" style="flex: 1;">
-          <label style="font-size: 10px;">Tier</label>
-          <input type="text" class="special-tier" placeholder="e.g. Free, Meter" value="${tier}" />
+          <label style="font-size: 10px;">End Date (optional)</label>
+          <input type="date" class="special-end-date" value="${endDate}" />
         </div>
       </div>
-      <div class="field">
-        <label style="font-size: 10px;">Repeats</label>
-        <input type="text" class="special-repeats" placeholder="e.g. None, Daily, Weekly" value="${repeats}" />
+      <div style="display: flex; gap: 8px;">
+        <div class="field" style="flex: 1;">
+          <label style="font-size: 10px;">Tier</label>
+          <select class="special-tier">
+            <option value="">Select a tier...</option>
+            <option value="Private" ${tier === 'Private' ? 'selected' : ''}>Private</option>
+            <option value="AppState Faculty" ${tier === 'AppState Faculty' ? 'selected' : ''}>AppState Faculty</option>
+            <option value="AppState Parking Pass" ${tier === 'AppState Parking Pass' ? 'selected' : ''}>AppState Parking Pass</option>
+            <option value="Free" ${tier === 'Free' ? 'selected' : ''}>Free</option>
+            <option value="Game Day Parking Pass" ${tier === 'Game Day Parking Pass' ? 'selected' : ''}>Game Day Parking Pass</option>
+            <option value="Meter" ${tier === 'Meter' ? 'selected' : ''}>Meter</option>
+            <option value="Cash Payments Only" ${tier === 'Cash Payments Only' ? 'selected' : ''}>Cash Payments Only</option>
+            <option value="Event Only" ${tier === 'Event Only' ? 'selected' : ''}>Event Only</option>
+          </select>
+        </div>
+        <div class="field" style="flex: 1;">
+          <label style="font-size: 10px;">Repeats</label>
+          <select class="special-repeats">
+            <option value="None" ${repeats === 'None' ? 'selected' : ''}>None</option>
+            <option value="Daily" ${repeats === 'Daily' ? 'selected' : ''}>Daily</option>
+            <option value="Weekly" ${repeats === 'Weekly' ? 'selected' : ''}>Weekly</option>
+            <option value="Monthly" ${repeats === 'Monthly' ? 'selected' : ''}>Monthly</option>
+            <option value="Annually" ${repeats === 'Annually' ? 'selected' : ''}>Annually</option>
+          </select>
+        </div>
       </div>
       <div style="display: flex; gap: 8px;">
         <div class="field" style="flex: 1; margin-bottom: 10px;">
@@ -1129,6 +1169,7 @@
   window.saveSpecialSchedule = async function (id) {
     const form = document.querySelector(`#special-form-${id || 'new'}`);
     const date = form.querySelector('.special-date').value;
+    const endDate = form.querySelector('.special-end-date').value;
     const tier = form.querySelector('.special-tier').value.trim();
     const repeats = form.querySelector('.special-repeats').value.trim();
     const start = form.querySelector('.special-start').value;
@@ -1139,11 +1180,12 @@
     try {
       if (id) {
         // Update existing
-        await apiUpdateSchedule(id, { date, start_time: start, end_time: end, tier, repeats });
+        await apiUpdateSchedule(id, { date, end_date: endDate, start_time: start, end_time: end, tier, repeats });
         if (editingLotId !== null) {
           const sched = lots[editingLotId].data.special_schedules.find(s => s.id === id);
           if (sched) {
             sched.date = date;
+            sched.end_date = endDate;
             sched.start_time = start;
             sched.end_time = end;
             sched.tier = tier;
@@ -1152,7 +1194,7 @@
         }
       } else {
         // Create new
-        const created = await apiCreateSpecialSchedule(editingLotId, date, start, end, tier, repeats);
+        const created = await apiCreateSpecialSchedule(editingLotId, date, endDate, start, end, tier, repeats);
         if (editingLotId !== null) {
           lots[editingLotId].data.special_schedules.push(created);
         }
@@ -1181,6 +1223,7 @@
     const spaces = parseInt(document.getElementById('f-spaces').value) || 0;
     const defaultTier = document.getElementById('f-tier').value.trim();
     const owner = document.getElementById('f-owner').value.trim();
+    const visible = document.getElementById('f-visible').checked;
 
     if (!name) { document.getElementById('f-name').focus(); return; }
 
@@ -1189,7 +1232,7 @@
       try {
         const d    = lots[editingLotId].data;
         const coords = d.coordinates; // geometry unchanged
-        const updated = await apiUpdate(editingLotId, name, spaces, coords, defaultTier, owner);
+        const updated = await apiUpdate(editingLotId, name, spaces, coords, defaultTier, owner, visible);
         lots[editingLotId].data = updated;
         // refresh tooltip
         lots[editingLotId].layer.unbindTooltip();
@@ -1203,7 +1246,7 @@
       // ── Create new lot ──
       try {
         const coords  = latlngsToCoords(pendingLayer.getLatLngs()[0]);
-        const created = await apiCreate(name, spaces, coords, defaultTier, owner);
+        const created = await apiCreate(name, spaces, coords, defaultTier, owner, visible);
         pendingLayer.setStyle({ color: '#1a7f37', fillColor: '#1a7f37', fillOpacity: .25, weight: 2 });
         drawnItems.addLayer(pendingLayer);
         lots[created.id] = { layer: pendingLayer, data: created };
