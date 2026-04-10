@@ -46,6 +46,7 @@ def check_schedules(free, special, default_tier):
     current_time = now.strftime("%H:%M")
     current_date = now.strftime("%Y-%m-%d")
     tier = default_tier
+    
     #check free schedules first
     for schedule in free:
         if schedule["day_of_week"] == current_day:
@@ -167,5 +168,5 @@ class ParkingLot(db.Model):
             "free_schedules": free,
             "special_schedules": special,
             "tier": tier,
-            "visible": self.visible
+            "visible": self.visible,
         }
