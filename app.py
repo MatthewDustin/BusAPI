@@ -1,4 +1,5 @@
 import os, json, time, logging
+from datetime import datetime
 from flask import Flask, render_template, jsonify, request, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from bus import fetch_data
@@ -29,7 +30,9 @@ def lot_manager():
 @app.route("/api/lots", methods=["GET"])
 def get_lots():
     lots = ParkingLot.query.all()
-    return jsonify([lot.to_dict() for lot in lots])
+    lots = jsonify([lot.to_dict() for lot in lots])
+    answer = jsonify({"time": str(datetime.now().time()), "lots": lots})
+    return answer
 
 @app.route("/api/lots", methods=["POST"])
 def create_lot():
