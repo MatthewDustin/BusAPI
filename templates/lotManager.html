@@ -293,8 +293,23 @@
       outline: none;
       transition: border-color .15s;
     }
-    .field input:focus,
-    .field select:focus { border-color: var(--accent2); }
+     .field input:focus,
+     .field select:focus { border-color: var(--accent2); }
+
+     .field select[multiple] {
+       min-height: 100px;
+       padding: 8px;
+     }
+
+     .field select[multiple] option {
+       padding: 4px;
+       line-height: 1.5;
+     }
+
+     .field select[multiple] option:checked {
+       background: var(--accent2) linear-gradient(var(--accent2), var(--accent2));
+       color: white;
+     }
 
     .btn {
       flex: 1;
@@ -396,7 +411,7 @@
     .tab-content.active { display: block; }
 
     #modal-footer {
-      padding: 0 20px 20px;
+      padding: 20px 20px;
       display: flex;
       gap: 8px;
       flex-shrink: 0;
@@ -563,25 +578,24 @@
         </div>
         <div class="field">
           <label>Number of Spaces</label>
-          <input type="number" id="f-spaces" placeholder="e.g. 120" min="0" />
+          <input type="number" id="f-spaces" value="15" min="0" />
         </div>
-        <div class="field">
-          <label>Default Tier</label>
-          <select id="f-tier">
-            <option value="">Select a tier...</option>
-            <option value="Private">Private</option>
-            <option value="AppState Faculty">AppState Faculty</option>
-            <option value="AppState Parking Pass">AppState Parking Pass</option>
-            <option value="Free">Free</option>
-            <option value="Game Day Parking Pass">Game Day Parking Pass</option>
-            <option value="Meter">Meter</option>
-            <option value="Cash Payments Only">Cash Payments Only</option>
-            <option value="Event Only">Event Only</option>
-          </select>
-        </div>
+         <div class="field">
+           <label>Default Tier (select multiple)</label>
+           <select id="f-tier" multiple>
+             <option value="AppState Faculty">AppState Faculty</option>
+             <option value="Private">Private</option>
+             <option value="AppState Parking Pass">AppState Parking Pass</option>
+             <option value="Free">Free</option>
+             <option value="Game Day Parking Pass">Game Day Parking Pass</option>
+             <option value="Meter">Meter</option>
+             <option value="Cash Payments Only">Cash Payments Only</option>
+             <option value="Event Only">Event Only</option>
+           </select>
+         </div>
         <div class="field">
           <label>Owner</label>
-          <input type="text" id="f-owner" placeholder="e.g. City Parking" />
+          <input type="text" id="f-owner" value="AppState" />
         </div>
         <div class="field" style="display: flex; align-items: center; margin-bottom: 16px;">
           <input type="checkbox" id="f-visible" style="width: auto; margin-right: 8px;" />
@@ -862,7 +876,7 @@
   map.on(L.Draw.Event.CREATED, function (e) {
     pendingLayer = e.layer;
     editingLotId = null;
-    openModal('New Parking Lot', '', '', '', '');
+    openModal('New Parking Lot', '', '20', 'AppState Faculty', 'AppState');
   });
 
   // ── Draw: polygon edited ──────────────────────────────────────────────────
@@ -904,15 +918,24 @@
   });
 
   // ── Modal ─────────────────────────────────────────────────────────────────
-  function openModal(title, name, spaces, defaultTier = '', owner = '', visible = true) {
-    document.getElementById('modal-title').textContent  = title;
-    document.getElementById('f-name').value   = name;
-    document.getElementById('f-spaces').value = spaces;
-    document.getElementById('f-tier').value   = defaultTier;
-    document.getElementById('f-owner').value  = owner;
-    document.getElementById('f-visible').checked = visible;
-    document.getElementById('modal-overlay').classList.add('open');
-    document.getElementById('f-name').focus();
+   function openModal(title, name, spaces, defaultTier = '', owner = '', visible = true) {
+     document.getElementById('modal-title').textContent  = title;
+     document.getElementById('f-name').value   = name;
+     document.getElementById('f-spaces').value = spaces;
+     // Parse comma-separated tier values and set selected options
+     const tierSelect = document.getElementById('f-tier');
+     tierSelect.querySelectorAll('option').forEach(opt => opt.selected = false);
+     if (defaultTier) {
+       const tiers = defaultTier.split(',').map(t => t.trim());
+       tiers.forEach(tier => {
+         const opt = Array.from(tierSelect.options).find(o => o.value === tier);
+         if (opt) opt.selected = true;
+       });
+     }
+     document.getElementById('f-owner').value  = owner;
+     document.getElementById('f-visible').checked = visible;
+     document.getElementById('modal-overlay').classList.add('open');
+     document.getElementById('f-name').focus();
 
     // Reset to info tab
     switchTab('info');
@@ -1094,20 +1117,19 @@
         </div>
       </div>
       <div style="display: flex; gap: 8px;">
-        <div class="field" style="flex: 1;">
-          <label style="font-size: 10px;">Tier</label>
-          <select class="special-tier">
-            <option value="">Select a tier...</option>
-            <option value="Private" ${tier === 'Private' ? 'selected' : ''}>Private</option>
-            <option value="AppState Faculty" ${tier === 'AppState Faculty' ? 'selected' : ''}>AppState Faculty</option>
-            <option value="AppState Parking Pass" ${tier === 'AppState Parking Pass' ? 'selected' : ''}>AppState Parking Pass</option>
-            <option value="Free" ${tier === 'Free' ? 'selected' : ''}>Free</option>
-            <option value="Game Day Parking Pass" ${tier === 'Game Day Parking Pass' ? 'selected' : ''}>Game Day Parking Pass</option>
-            <option value="Meter" ${tier === 'Meter' ? 'selected' : ''}>Meter</option>
-            <option value="Cash Payments Only" ${tier === 'Cash Payments Only' ? 'selected' : ''}>Cash Payments Only</option>
-            <option value="Event Only" ${tier === 'Event Only' ? 'selected' : ''}>Event Only</option>
-          </select>
-        </div>
+         <div class="field" style="flex: 1;">
+           <label style="font-size: 10px;">Tier (select multiple)</label>
+           <select class="special-tier" multiple>
+             <option value="Private" ${tier === 'Private' ? 'selected' : ''}>Private</option>
+             <option value="AppState Faculty" ${tier === 'AppState Faculty' ? 'selected' : ''}>AppState Faculty</option>
+             <option value="AppState Parking Pass" ${tier === 'AppState Parking Pass' ? 'selected' : ''}>AppState Parking Pass</option>
+             <option value="Free" ${tier === 'Free' ? 'selected' : ''}>Free</option>
+             <option value="Game Day Parking Pass" ${tier === 'Game Day Parking Pass' ? 'selected' : ''}>Game Day Parking Pass</option>
+             <option value="Meter" ${tier === 'Meter' ? 'selected' : ''}>Meter</option>
+             <option value="Cash Payments Only" ${tier === 'Cash Payments Only' ? 'selected' : ''}>Cash Payments Only</option>
+             <option value="Event Only" ${tier === 'Event Only' ? 'selected' : ''}>Event Only</option>
+           </select>
+         </div>
         <div class="field" style="flex: 1;">
           <label style="font-size: 10px;">Repeats</label>
           <select class="special-repeats">
@@ -1170,16 +1192,19 @@
     } catch { toast('Failed to save schedule', 'error'); }
   };
 
-  window.saveSpecialSchedule = async function (id) {
-    const form = document.querySelector(`#special-form-${id || 'new'}`);
-    const date = form.querySelector('.special-date').value;
-    const endDate = form.querySelector('.special-end-date').value;
-    const tier = form.querySelector('.special-tier').value.trim();
-    const repeats = form.querySelector('.special-repeats').value.trim();
-    const start = form.querySelector('.special-start').value;
-    const end = form.querySelector('.special-end').value;
+   window.saveSpecialSchedule = async function (id) {
+     const form = document.querySelector(`#special-form-${id || 'new'}`);
+     const date = form.querySelector('.special-date').value;
+     const endDate = form.querySelector('.special-end-date').value;
+     // Get selected tier values and join as comma-separated string
+     const tierSelect = form.querySelector('.special-tier');
+     const selectedTiers = Array.from(tierSelect.selectedOptions).map(opt => opt.value);
+     const tier = selectedTiers.join(',');
+     const repeats = form.querySelector('.special-repeats').value.trim();
+     const start = form.querySelector('.special-start').value;
+     const end = form.querySelector('.special-end').value;
 
-    if (!date || !tier || !repeats) { toast('Date, Tier, and Repeats are required', 'error'); return; }
+     if (!date || !tier || !repeats) { toast('Date, Tier, and Repeats are required', 'error'); return; }
 
     try {
       if (id) {
@@ -1222,14 +1247,17 @@
     showSpecialScheduleForm();
   });
 
-  document.getElementById('btn-modal-save').onclick = async function () {
-    const name   = document.getElementById('f-name').value.trim();
-    const spaces = parseInt(document.getElementById('f-spaces').value) || 0;
-    const defaultTier = document.getElementById('f-tier').value.trim();
-    const owner = document.getElementById('f-owner').value.trim();
-    const visible = document.getElementById('f-visible').checked;
+   document.getElementById('btn-modal-save').onclick = async function () {
+     const name   = document.getElementById('f-name').value.trim();
+     const spaces = parseInt(document.getElementById('f-spaces').value) || 0;
+     // Get selected tier values and join as comma-separated string
+     const tierSelect = document.getElementById('f-tier');
+     const selectedTiers = Array.from(tierSelect.selectedOptions).map(opt => opt.value);
+     const defaultTier = selectedTiers.join(',');
+     const owner = document.getElementById('f-owner').value.trim();
+     const visible = document.getElementById('f-visible').checked;
 
-    if (!name) { document.getElementById('f-name').focus(); return; }
+     if (!name) { document.getElementById('f-name').focus(); return; }
 
     if (editingLotId !== null) {
       // ── Update existing lot ──

@@ -157,12 +157,19 @@ class ParkingLot(db.Model):
         free = [s.to_dict() for s in self.free_schedules]
         special = [s.to_dict() for s in self.special_schedules]
         tier = check_schedules(free, special, self.default_tier)
+        if "," in tier:
+            tier = tier.split(",")
+        if "," in self.default_tier:
+            default_tier = self.default_tier.split(",")
+        else:
+            default_tier = self.default_tier
+
         return {
             "id": self.id,
             "name": self.name,
             "spaces": self.spaces,
             "coordinates": json.loads(self.coordinates),
-            "default_tier": self.default_tier,
+            "default_tier": default_tier,
             "owner": self.owner,
             "free_schedules": free,
             "special_schedules": special,
