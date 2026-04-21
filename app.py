@@ -30,8 +30,9 @@ def lot_manager():
 @app.route("/api/lots", methods=["GET"])
 def get_lots():
     lots = ParkingLot.query.all()
-    lots = jsonify([lot.to_dict() for lot in lots])
-    answer = jsonify({"time": str(datetime.now().time()), "lots": lots})
+    lots_data = [lot.to_dict() for lot in lots]
+
+    answer = jsonify({"time": str(datetime.now().time()), "lots": lots_data})
     return answer
 
 @app.route("/api/lots", methods=["POST"])
