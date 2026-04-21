@@ -1275,7 +1275,7 @@
       } catch { toast('Failed to update', 'error'); }
 
     } else if (pendingLayer) {
-      // ── Create new lot ──
+      // ── Create new lot
       try {
         const coords  = latlngsToCoords(pendingLayer.getLatLngs()[0]);
         const created = await apiCreate(name, spaces, coords, defaultTier, owner, visible);
