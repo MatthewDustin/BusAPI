@@ -18,6 +18,16 @@ class FreeParkingSchedule(db.Model):
             "parking_lot_id": self.parking_lot_id
         }
 
+student_parking_pass_schedule = [
+    { "day_of_week": "Monday", "start_time": "5 PM", "end_time": "7 AM", },
+    { "day_of_week": "Tuesday", "start_time": "5 PM", "end_time": "7 AM", },
+    { "day_of_week": "Wednesday", "start_time": "5 PM", "end_time": "7 AM", },
+    { "day_of_week": "Thursday", "start_time": "5 PM", "end_time": "7 AM", },
+    { "day_of_week": "Friday", "start_time": "5 PM", "end_time": "7 AM", },
+    { "day_of_week": "Saturday", "start_time": "", "end_time": "" },
+    { "day_of_week": "Sunday", "start_time": "", "end_time": "" },
+]
+
 class SpecialParkingSchedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.String(10), nullable=False)  # Format: YYYY-MM-DD
@@ -170,6 +180,8 @@ class ParkingLot(db.Model):
         special = [s.to_dict() for s in self.special_schedules]
         tier = check_schedules(free, special, self.default_tier)
 
+        if "AppState Parking Pass" in self.default_tier:
+            free.extend(student_parking_pass_schedule)
         return {
             "id": self.id,
             "name": self.name,
