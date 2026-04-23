@@ -171,7 +171,7 @@ class ParkingLot(db.Model):
     default_tier = db.Column(db.String(20), nullable=False)
     owner = db.Column(db.String(100), nullable=True)
     visible = db.Column(db.Boolean, default=True, nullable=False)
-    # Relationships
+
     free_schedules = db.relationship('FreeParkingSchedule', backref='lot', lazy=True, cascade='all, delete-orphan')
     special_schedules = db.relationship('SpecialParkingSchedule', backref='lot', lazy=True, cascade='all, delete-orphan')
 
