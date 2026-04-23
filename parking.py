@@ -65,7 +65,7 @@ def check_schedules(free, special, default_tier):
                 tiers.remove("AppState Parking Pass")
         else:
             tiers.remove("AppState Parking Pass")
-        if tiers.isEmpty():
+        if not tiers:
             tiers.append("Free")
         tier = ",".join(tiers)
     else:
