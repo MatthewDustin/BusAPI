@@ -46,24 +46,31 @@ def check_schedules(free, special, default_tier):
     current_time = now.strftime("%H:%M")
     current_date = now.strftime("%Y-%m-%d")
     tier = default_tier
-    
-    #check free schedules first
-    for schedule in free:
-        if schedule["day_of_week"] == current_day:
-            if schedule["start_time"]:
-                #format times for comparison
-                start_time = datetime.strptime(schedule["start_time"], "%H:%M").time()
-                if start_time <= now.time():
-                    if schedule["end_time"]:
-                        end_time = datetime.strptime(schedule["end_time"], "%H:%M").time()
-                        if now.time() <= end_time:
-                            tier = "Free"
-                    else:
-                        tier = "Free"
-            else:
-                tier = "Free"
 
-    #check special schedules next, which override free schedules
+    if "appstate parking pass" in tier.lower():
+        if current_day != "Saturday" and current_day != "Sunday":
+            hour = int(current_time.split(":")[0])
+            if hour > 17 or hour < 7:
+                tier = tier.lower().replace("appstate parking pass", "free")
+        else:
+            tier = tier.lower().replace("appstate parking pass", "free")
+    else:
+        for schedule in free:
+            if schedule["day_of_week"] == current_day:
+                if schedule["start_time"]:
+                    #format times for comparison
+                    start_time = datetime.strptime(schedule["start_time"], "%H:%M").time()
+                    if start_time <= now.time():
+                        if schedule["end_time"]:
+                            end_time = datetime.strptime(schedule["end_time"], "%H:%M").time()
+                            if now.time() <= end_time:
+                                tier = "Free"
+                        else:
+                            tier = "Free"
+                else:
+                    tier = "Free"
+
+    #special schedules override free schedules
     for schedule in special:
         if schedule["end_date"]:
             end_date = datetime.strptime(schedule["end_date"], "%Y-%m-%d").date()
