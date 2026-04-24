@@ -56,7 +56,6 @@ def check_schedules(free, special, default_tier):
     current_time = now.strftime("%H:%M")
     current_date = now.strftime("%Y-%m-%d")
     tiers = default_tier.split(",")
-    tier = default_tier
 
     if "AppState Parking Pass" in tiers:
         if current_day != "Saturday" and current_day != "Sunday":
@@ -65,9 +64,7 @@ def check_schedules(free, special, default_tier):
                 tiers.remove("AppState Parking Pass")
         else:
             tiers.remove("AppState Parking Pass")
-        if not tiers:
-            tiers.append("Free")
-        tier = ",".join(tiers)
+
     else:
         for schedule in free:
             if schedule["day_of_week"] == current_day:
@@ -78,11 +75,15 @@ def check_schedules(free, special, default_tier):
                         if schedule["end_time"]:
                             end_time = datetime.strptime(schedule["end_time"], "%H:%M").time()
                             if now.time() <= end_time:
-                                tier = "Free"
+                                tiers.remove("AppState Parking Pass")
                         else:
-                            tier = "Free"
+                            tiers.remove("AppState Parking Pass")
                 else:
-                    tier = "Free"
+                    tiers.remove("AppState Parking Pass")
+
+    if not tiers:
+        tiers.append("Free")
+    tier = ",".join(tiers)
 
     #special schedules override free schedules
     for schedule in special:
