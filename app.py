@@ -239,5 +239,5 @@ def get_buses():
 
 if __name__ == "__main__":
      # Railway provides a PORT environment variable automatically
-     port = 8080
+     port = int(os.environ.get('PORT', 8080))
      app.run(host='0.0.0.0', port=port)
