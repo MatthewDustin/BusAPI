@@ -1,7 +1,8 @@
 import os, json, time, logging
 from datetime import datetime
-from flask import Flask, render_template, jsonify, request, send_from_directory
+from flask import Flask, render_template, jsonify, request, send_from_directory, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from bus import fetch_data
 
 app = Flask(__name__)
@@ -9,23 +10,74 @@ logging.basicConfig(level=logging.INFO)
 app.logger.setLevel(logging.INFO)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///parking.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SECRET_KEY"] = "your-secret-key-change-this-in-production"
 db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+# Import models after db initialization to avoid circular imports
 from parking import ParkingLot, FreeParkingSchedule, SpecialParkingSchedule
+
+# Simple hardcoded user for authentication
+class User(UserMixin):
+    def __init__(self, username):
+        self.id = username
+        self.username = username
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id == "admin":
+        return User("admin")
+    return None
 
 with app.app_context():
     db.create_all()
 
+# Delete JSON cache files on app launch to force fresh data fetch from external APIs
+files_to_delete = ['announcements.json', 'buses.json', 'routes.json', 'stopETAs.json', 'stops.json', 'vehicles.json']
+for file in files_to_delete:
+    if os.path.exists(file):
+        os.remove(file)
+
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(app.root_path, 'favicon.ico')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        # Hardcoded credentials check
+        if username == "admin" and password == "parkingyosef3":
+            user = User("admin")
+            login_user(user)
+            return redirect(url_for('lot_manager'))
+        else:
+            return render_template('login.html', error="Invalid username or password")
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('home'))
 
 @app.route('/')
 def home():
     return render_template('home.html')
 
 @app.route('/lotmanager')
+@login_required
 def lot_manager():
     return render_template('lotManager.html')
+
+@app.route('/parking')
+def parking_map():
+    return render_template('parking.html')
 
 @app.route("/api/lots", methods=["GET"])
 def get_lots():
@@ -155,13 +207,6 @@ def delete_schedule(schedule_id):
     db.session.commit()
     return jsonify({"deleted": schedule_id})
 
-@app.route('/vehicles')
-def get_vehicles():
-    from bus import markers
-    fetch_data()
-
-    return jsonify(markers())
-
 @app.route('/announcements')
 def get_announcements():
     fetch_data()
@@ -193,7 +238,6 @@ def get_buses():
 
 
 if __name__ == "__main__":
-    # Railway provides a PORT environment variable automatically
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
-    fetch_data()
+     # Railway provides a PORT environment variable automatically
+     port = int(os.environ.get("PORT", 5000))
+     app.run(host='0.0.0.0', port=port)

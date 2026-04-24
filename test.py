@@ -4,14 +4,7 @@ import json
 import requests
 from requests import RequestException
 
-from app import fetch_data
-
-if __name__ == "__main__":
-    with open('data.json', 'r') as file:
-        data = json.load(file)
-        print(data)
-        for vehicle in data["get_vehicles"]:
-            print(vehicle["lat"])
+from bus import fetch_data
 
 
 

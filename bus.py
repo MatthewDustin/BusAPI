@@ -25,7 +25,6 @@ def fetch_data(app=None):
         stops = json.load(file)
     update_clean(app)
 
-
 def update_clean(app=None):
     global stops, routes
 
@@ -90,7 +89,6 @@ def update_clean(app=None):
             })
     with open('buses.json', 'w') as file:
         json.dump(buses, file)
-
 
 def fetch_daily_data():
     global stops, routes
@@ -257,33 +255,3 @@ def fetch_stops():
     except ValueError as ve:
         print(ve)
         return []
-
-def markers():
-    global stops, routes
-    answer = []
-    with open('vehicles.json', 'r') as file:
-        vehicles = json.load(file)
-        for vehicle in vehicles["get_vehicles"]:
-            route_id = str(vehicle["routeID"])
-            if route_id in routes:
-                route_color = routes[route_id]["color"]
-                route_name = routes[route_id]["name"]
-            else:
-                route_color = "#000000"
-                route_name = "Unknown"
-            marker = {
-                "lat": vehicle["lat"],
-                "lng": vehicle["lng"],
-                "route_color": route_color,
-                "route_id": vehicle["routeID"],
-                "route_name": route_name,
-                "equipment_id": vehicle["equipmentID"],
-                "stop1": stops[vehicle["minutesToNextStops"][0]["stopID"]]["name"],
-                "stop1_eta": vehicle["minutesToNextStops"][0]["minutes"],
-                "stop2": stops[vehicle["minutesToNextStops"][1]["stopID"]]["name"],
-                "stop2_eta": vehicle["minutesToNextStops"][1]["minutes"],
-                "stop3": stops[vehicle["minutesToNextStops"][2]["stopID"]]["name"],
-                "stop3_eta": vehicle["minutesToNextStops"][2]["minutes"],
-            }
-            answer.append(marker)
-    return answer

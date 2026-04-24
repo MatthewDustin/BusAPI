@@ -3,107 +3,363 @@
 <head>
     <title>Bus Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/polyline-encoded@0.0.9/Polyline.encoded.js" />
     <style>
-        #map { height: 500px; width: 100%; }
-        .busIcon {
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
             font-family: Arial, sans-serif;
-            font-size: 14px;
-            border: 0.69rem solid;
-            border-radius: 0.5rem;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #map {
+            height: calc(100vh - 56px - 120px);
+            width: 100%;
+            flex: 1;
+        }
+
+        #controls-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 120px;
+            background-color: white;
+            border-top: 2px solid #ccc;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 10px;
+            z-index: 1000;
+        }
+
+        .route-toggle {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 20px;
+            margin-bottom: 10px;
+            gap: 10px;
+            padding: 8px 12px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+
+        .route-name {
+            font-weight: bold;
+            min-width: 60px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .color-dot {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #333;
         }
     </style>
 </head>
 <body>
+    {% include 'navbar.html' %}
     <div id="map"></div>
+    <div id="controls-container"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/polyline-encoded@0.0.9/Polyline.encoded.js"></script>
 
     <script>
-        // create bus icon
-        var busIcon = L.icon({
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/1023/1023362.png',
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
-        });
+        // Data storage
+        var stops = {};
+        var routes = {};
+        var buses = [];
+        var visibleRoutes = {};
+        var enabledRoutes = {};
 
-        var stopIcon = L.icon({
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/1042/1042314.png',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-        });
+        // Layer groups
+        var routePolylines = {};
+        var stopMarkers = {};
+        var busMarkers = {};
 
-        // 1. Initialize the map centered on a specific spot
+        // Initialize map
         var map = L.map('map').setView([36.215753, -81.6821169], 15);
-
-        // 2. Add OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        // get stops and store it in a variable
-        var stops = {};
-        var routes = {};
+        // Create layer groups
+        var routeLinesGroup = L.layerGroup().addTo(map);
+        var stopsGroup = L.layerGroup().addTo(map);
+        var busesGroup = L.layerGroup().addTo(map);
 
-        // 1. Create a LayerGroup to hold the markers
-        var markerGroup = L.layerGroup().addTo(map);
+        // Helper function to create bus icon
+        function createBusIcon(routeColor) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 40;
+            canvas.height = 40;
+            const ctx = canvas.getContext('2d');
 
-        // create a layer group to hold stops
-        var stopGroup = L.layerGroup().addTo(map);
+            // White circle background
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(20, 20, 18, 0, Math.PI * 2);
+            ctx.fill();
 
-        function showRoute(route) {
-            stopGroup.clearLayers();
-            routes[route].stops.forEach(function(stopName) {
-                let stop = stops[stopName];
-                let popup = `<div class='stopIcon'><b>${stop.name}</b><br>${stop.lat}, ${stop.lng}</div>`;
-                L.marker([stop.lat, stop.lng], {icon: stopIcon, alt: stop.name + " Stop", autoPanOnFocus: true})
-                    .bindPopup(popup)
-                    .addTo(stopGroup);
+            // Route color border
+            ctx.strokeStyle = routeColor;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Bus emoji
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('\u{1F68C}', 20, 20);
+
+            return L.icon({
+                iconUrl: canvas.toDataURL(),
+                iconSize: [40, 40],
+                iconAnchor: [20, 20],
+                popupAnchor: [0, -20]
             });
         }
 
-        function updateMap() {
-            fetch('/buses')
-                .then(response => response.json())
-                .then(data => {
-                    // 2. Clear existing markers so they don't stack up
-                    markerGroup.clearLayers();
+        // Helper function to create stop icon
+        function createStopIcon(routeColor) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
 
-                    // 3. Loop through new data and add markers to the group
-                    data.forEach(function(m) {
-                        let color = String(routes[m.route].color).replace(/^['"]|['"]$/g, '');
-                        var popup = `<div class='busIcon' style="border-color: ${color}"><b>Route:</b> ${m.route}<br><b>Next Stops:</b>`;
-                        for (let i = 0; i < m.stops.length; i++) {
-                            popup += `<br> ${m.stops[i] }<b> ${m.etas[i]}</b>`
-                        }
-                        popup += `</div>`;
-                        L.marker([m.lat, m.lng], {icon: busIcon, alt: m.route + " Bus", autoPanOnFocus: true})
-                            .bindPopup(popup)
-                            .on('click', function() { showRoute(m.route); })
-                            .addTo(markerGroup);
-                    });
+            // Route color circle background
+            ctx.fillStyle = routeColor;
+            ctx.beginPath();
+            ctx.arc(16, 16, 14, 0, Math.PI * 2);
+            ctx.fill();
 
-                    console.log("Map updated at: " + new Date().toLocaleTimeString());
-                })
-                .catch(error => console.error('Error fetching data:', error));
+            // White X
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(8, 8);
+            ctx.lineTo(24, 24);
+            ctx.moveTo(24, 8);
+            ctx.lineTo(8, 24);
+            ctx.stroke();
+
+            return L.icon({
+                iconUrl: canvas.toDataURL(),
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+                popupAnchor: [0, -16]
+            });
         }
 
+        // Decode polyline
+        function decodePolyline(encoded) {
+            var inv = 1.0 / 1e5;
+            var decoded = [];
+            var previous = [0, 0];
+            var i = 0;
+
+            while (i < encoded.length) {
+                var ll = [0, 0];
+                for (var j = 0; j < 2; j++) {
+                    var shift = 0;
+                    var result = 0;
+                    var byte = 0;
+                    do {
+                        byte = encoded.charCodeAt(i++) - 63;
+                        result |= (byte & 0x1f) << shift;
+                        shift += 5;
+                    } while (byte >= 0x20);
+                    ll[j] = previous[j] + (result & 1 ? ~(result >> 1) : result >> 1);
+                    previous[j] = ll[j];
+                }
+                decoded.push([ll[0] * inv, ll[1] * inv]);
+            }
+            return decoded;
+        }
+
+        // Toggle route visibility
+        function toggleRoute(routeName) {
+            enabledRoutes[routeName] = !enabledRoutes[routeName];
+            updateMap();
+        }
+
+        // Update map display
+        function updateMap() {
+            // Clear and redraw routes
+            routeLinesGroup.clearLayers();
+            stopsGroup.clearLayers();
+            busesGroup.clearLayers();
+
+            // Draw enabled & visible routes and their stops
+            for (let routeIndex in routes) {
+                const route = routes[routeIndex];
+                if (enabledRoutes[route.name] && visibleRoutes[route.name]) {
+                    const color = route.color || '#000000';
+
+                    // Draw polyline
+                    if (route.encodedLine) {
+                        const points = decodePolyline(route.encodedLine);
+                        const latLngs = points.map(p => [p[0], p[1]]);
+                        L.polyline(latLngs, {
+                            color: color,
+                            weight: 4,
+                            opacity: 0.7
+                        }).addTo(routeLinesGroup);
+                    }
+
+                    // Draw stops for this route
+                    if (route.stopNames) {
+                        route.stopNames.forEach(stopName => {
+                            if (stops[stopName]) {
+                                const stop = stops[stopName];
+                                const icon = createStopIcon(color);
+                                const popup = `<div><b>${stop.name}</b><br>Lat: ${stop.lat.toFixed(4)}<br>Lng: ${stop.lng.toFixed(4)}</div>`;
+                                L.marker([stop.lat, stop.lng], {icon: icon, zIndexOffset: 0})
+                                    .bindPopup(popup)
+                                    .addTo(stopsGroup);
+                            }
+                        });
+                    }
+                }
+            }
+
+            // Draw buses for enabled routes
+            buses.forEach(bus => {
+                if (enabledRoutes[bus.route]) {
+                    const route = routes[bus.route];
+                    const color = route ? (route.color || '#000000') : '#000000';
+                    const icon = createBusIcon(color);
+
+                    let popupText = `<div><b>Bus ${bus.name}</b><br>`;
+                    popupText += `<b>Route:</b> ${bus.route}<br>`;
+                    popupText += `<b>Next Stops:</b><br>`;
+                    for (let i = 0; i < Math.min(3, bus.stops.length); i++) {
+                        popupText += `${i + 1}. ${bus.stops[i]} (${bus.etas[i]} min)<br>`;
+                    }
+                    popupText += `</div>`;
+
+                    L.marker([bus.lat, bus.lng], {icon: icon, zIndexOffset: 1000})
+                        .bindPopup(popupText)
+                        .addTo(busesGroup);
+                }
+            });
+
+            console.log("Map updated at: " + new Date().toLocaleTimeString());
+        }
+
+        // Render controls
+        function renderControls() {
+            const container = document.getElementById('controls-container');
+            container.innerHTML = '';
+
+            for (let bus in buses) {
+                visibleRoutes[buses[bus].route] = true;
+            }
+
+            for (let index in routes) {
+                const route = routes[index];
+                if (visibleRoutes[route.name]) {
+                    const color = route.color || '#000000';
+
+                    const toggle = document.createElement('div');
+                    toggle.className = 'route-toggle';
+                    toggle.innerHTML = `
+                        <span class="route-name">${route.name}</span>
+                        <span class="color-dot" style="background-color: ${color};"></span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" onchange="toggleRoute('${route.name}')">
+                            <span class="slider"></span>
+                        </label>
+                    `;
+                    container.appendChild(toggle);
+                }
+
+            }
+        }
+
+        // Fetch data and initialize
         Promise.all([
-            fetch('/stops').then(response => response.json()).then(data => {
-                data.forEach(function(stop) {
+            fetch('/stops').then(r => r.json()).then(data => {
+                data.forEach(stop => {
                     stops[stop.name] = stop;
                 });
             }),
-
-            fetch('/routes').then(response => response.json()).then(data => {
-                data.forEach(function(route) {
+            fetch('/routes').then(r => r.json()).then(data => {
+                data.forEach(route => {
                     routes[route.name] = route;
+                    visibleRoutes[route.name] = false;
+                    enabledRoutes[route.name] = false;
                 });
+            }),
+            fetch('/buses').then(r => r.json()).then(data => {
+                buses = data;
             })
+
         ])
         .then(() => {
+            renderControls();
             updateMap();
-            setInterval(updateMap, 30000);
+            // Update every 30 seconds
+            setInterval(() => {
+                fetch('/buses').then(r => r.json()).then(data => {
+                    buses = data;
+                    updateMap();
+                });
+            }, 30000);
         })
         .catch(error => console.error('Error fetching data:', error));
     </script>

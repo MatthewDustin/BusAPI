@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parking Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #map {
+            height: calc(100vh - 56px);
+            width: 100%;
+            flex: 1;
+        }
+
+        .popup-content {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .popup-content h3 {
+            margin: 10px 0 8px 0;
+            font-size: 16px;
+            color: #222;
+        }
+
+        .popup-content p {
+            margin: 5px 0;
+            line-height: 1.4;
+        }
+
+        .tier-label {
+            font-weight: bold;
+            padding: 3px 6px;
+            border-radius: 3px;
+            display: inline-block;
+            color: white;
+            font-size: 13px;
+            margin: 3px 0;
+        }
+
+        .schedule-item {
+            background-color: #f9f9f9;
+            padding: 5px 8px;
+            margin: 4px 0;
+            border-left: 3px solid #999;
+            font-size: 12px;
+        }
+
+        .schedule-label {
+            font-weight: bold;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    <div id="map"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        // Tier to color mapping
+        const tierColors = {
+            "AppState Faculty": "#800080",      // purple
+            "Free": "#008000",                   // green
+            "AppState Parking Pass": "#FFD700", // gold
+            "Game Day Parking Pass": "#FF8C00", // dark orange
+            "Meter": "#FF0000",                 // red
+            "Event Only": "#FF0000",            // red
+            "Cash Payments Only": "#FF0000",    // red
+            "Private": "#808080"                // grey
+        };
+
+        // Initialize map centered on Appalachian State University area
+        const map = L.map('map').setView([36.2207, -81.6462], 15);
+
+        // Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19,
+        }).addTo(map);
+
+        // Store lot references for updating
+        const lotPolygons = {};
+
+        /**
+         * Create striped pattern SVG for multiple tiers
+         */
+        function createStripedPattern(tierList) {
+            if (tierList.length === 1) {
+                return tierColors[tierList[0]] || "#999999";
+            }
+
+            // For multiple tiers, create a striped effect by returning the first color
+            // (actual stripe rendering would require canvas or SVG elements)
+            return tierColors[tierList[0]] || "#999999";
+        }
+
+        /**
+         * Get the fill color based on tiers
+         */
+        function getTierColor(tierString) {
+            if (!tierString) return "#999999";
+
+            const tiers = tierString.split(",").map(t => t.trim());
+            return createStripedPattern(tiers);
+        }
+
+        /**
+         * Format tier string to display multiple colors as badges
+         */
+        function formatTierDisplay(tierString) {
+            if (!tierString) return "Unknown";
+
+            const tiers = tierString.split(",").map(t => t.trim());
+            return tiers.map(tier => {
+                const color = tierColors[tier] || "#999999";
+                const textColor = isLightColor(color) ? "#000000" : "#FFFFFF";
+                return `<span class="tier-label" style="background-color: ${color}; color: ${textColor};">${tier}</span>`;
+            }).join(" ");
+        }
+
+        /**
+         * Determine if a color is light or dark for text contrast
+         */
+        function isLightColor(color) {
+            // Convert hex to RGB and calculate luminance
+            const hex = color.replace("#", "");
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance > 0.5;
+        }
+
+        /**
+         * Create popup content for a parking lot
+         */
+        function createPopupContent(lot) {
+            let html = `
+                <div class="popup-content">
+                    <h3>${lot.name}</h3>
+                    <p><strong>Current Tier:</strong><br/>${formatTierDisplay(lot.tier)}</p>
+                    <p><strong>Default Tier:</strong><br/>${formatTierDisplay(lot.default_tier)}</p>
+                    <p><strong>Spaces:</strong> ${lot.spaces}</p>
+            `;
+
+            if (lot.owner) {
+                html += `<p><strong>Owner:</strong> ${lot.owner}</p>`;
+            }
+
+            if (lot.free_schedules && lot.free_schedules.length > 0) {
+                html += `<p><strong>Free Schedules:</strong></p>`;
+                lot.free_schedules.forEach(schedule => {
+                    let scheduleText = schedule.day_of_week;
+                    if (schedule.start_time) {
+                        scheduleText += ` ${schedule.start_time}`;
+                    }
+                    if (schedule.end_time) {
+                        scheduleText += ` - ${schedule.end_time}`;
+                    }
+                    html += `<div class="schedule-item">${scheduleText}</div>`;
+                });
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        /**
+         * Load and display parking lots
+         */
+        async function loadParkingLots() {
+            try {
+                const response = await fetch('/api/lots');
+                const data = await response.json();
+
+                data.lots.forEach(lot => {
+                    if (lot.coordinates && lot.coordinates.length > 0) {
+                        // Convert coordinates to Leaflet format [lat, lng]
+                        // Coordinates can be either: [[lat, lng], ...] or [{lat: ..., lng: ...}, ...]
+                        const latlngs = lot.coordinates.map(coord => {
+                            if (Array.isArray(coord)) {
+                                return coord;
+                            } else if (coord.lat !== undefined && coord.lng !== undefined) {
+                                return [coord.lat, coord.lng];
+                            }
+                            return null;
+                        }).filter(coord => coord !== null);
+
+                        if (latlngs.length === 0) {
+                            console.warn(`Lot ${lot.name} has no valid coordinates`);
+                            return;
+                        }
+
+                        // Get color based on tier
+                        const color = getTierColor(lot.tier);
+
+                        // Create polygon
+                        const polygon = L.polygon(latlngs, {
+                            color: color,
+                            fillColor: color,
+                            fillOpacity: 0.5,
+                            weight: 2,
+                            opacity: 0.8
+                        }).addTo(map);
+
+                        // Create popup
+                        const popupContent = createPopupContent(lot);
+                        polygon.bindPopup(popupContent);
+
+                        // Store reference
+                        lotPolygons[lot.id] = {
+                            polygon: polygon,
+                            lot: lot
+                        };
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading parking lots:', error);
+            }
+        }
+
+        /**
+         * Update lot colors based on current tier
+         */
+        async function updateLotColors() {
+            try {
+                const response = await fetch('/api/lots');
+                const data = await response.json();
+
+                data.lots.forEach(lot => {
+                    if (lotPolygons[lot.id]) {
+                        const newColor = getTierColor(lot.tier);
+                        const polyRef = lotPolygons[lot.id].polygon;
+                        polyRef.setStyle({
+                            color: newColor,
+                            fillColor: newColor
+                        });
+
+                        // Update popup content
+                        const newPopupContent = createPopupContent(lot);
+                        polyRef.setPopupContent(newPopupContent);
+
+                        // Update stored data
+                        lotPolygons[lot.id].lot = lot;
+                    }
+                });
+            } catch (error) {
+                console.error('Error updating lot colors:', error);
+            }
+        }
+
+        // Load lots on page load
+        loadParkingLots();
+
+        // Update lot colors every 30 seconds to reflect current tier
+        setInterval(updateLotColors, 30000);
+    </script>
+</body>
+</html>
+

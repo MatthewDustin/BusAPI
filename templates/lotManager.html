@@ -30,7 +30,9 @@
     html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
 
     /* ── Layout ─────────────────────────────────────────────── */
-    #app { display: flex; height: 100vh; overflow: hidden; }
+    body { display: flex; flex-direction: column; }
+
+    #app { display: flex; height: calc(100vh - 56px); overflow: hidden; }
 
     /* ── Sidebar ─────────────────────────────────────────────── */
     #sidebar {
@@ -513,6 +515,8 @@
   </style>
 </head>
 <body>
+    {% include 'navbar.html' %}
+
 <div id="app">
 
   <!-- ── Sidebar ── -->
@@ -857,7 +861,8 @@
 
   // ── Load existing lots on page load ──────────────────────────────────────
   async function loadLots() {
-    const data = await apiGet();
+    const response = await apiGet();
+    const data = response.lots || [];
     data.forEach(d => addLotToMap(d));
     renderSidebar();
   }
@@ -1357,3 +1362,4 @@
 </script>
 </body>
 </html>
+
