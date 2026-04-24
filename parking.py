@@ -60,7 +60,7 @@ def check_schedules(free, special, default_tier):
     if "AppState Parking Pass" in tiers:
         if current_day != "Saturday" and current_day != "Sunday":
             hour = int(current_time.split(":")[0])
-            if hour > 17 or hour < 7:
+            if hour >= 17 or hour < 7:
                 tiers.remove("AppState Parking Pass")
         else:
             tiers.remove("AppState Parking Pass")
