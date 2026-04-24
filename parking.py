@@ -181,7 +181,7 @@ class ParkingLot(db.Model):
         special = [s.to_dict() for s in self.special_schedules]
         tier = check_schedules(free, special, self.default_tier)
 
-        if "AppState Parking Pass" in self.default_tier:
+        if "AppState Parking Pass" == self.default_tier:
             free.extend(student_parking_pass_schedule)
         return {
             "id": self.id,
