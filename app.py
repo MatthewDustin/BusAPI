@@ -34,13 +34,13 @@ def load_user(user_id):
 
 def backup_db(session):
     if os.path.exists('instance/parking.db'):
-        shutil.copy('instance/parking.db', 'instance/parking_backup.db')
+        shutil.copy('instance/parking.db', 'parking_backup.db')
 
 event.listen(db.session, 'after_commit', backup_db)
 
 with app.app_context():
-    if not os.path.exists('instance/parking.db') and os.path.exists('instance/parking_backup.db'):
-        shutil.copy('instance/parking_backup.db', 'instance/parking.db')
+    if not os.path.exists('instance/parking.db') and os.path.exists('parking_backup.db'):
+        shutil.copy('parking_backup.db', 'instance/parking.db')
     db.create_all()
 
 # Delete JSON cache files on app launch to force fresh data fetch from external APIs
