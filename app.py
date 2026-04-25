@@ -6,6 +6,13 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from bus import fetch_data
 from sqlalchemy import event
 
+# Google Cloud Storage support (only imports if env vars are set)
+try:
+    from google.cloud import storage
+    GCS_ENABLED = True
+except ImportError:
+    GCS_ENABLED = False
+
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 app.logger.setLevel(logging.INFO)
@@ -32,15 +39,55 @@ def load_user(user_id):
         return User("admin")
     return None
 
-def backup_db(session):
-    if os.path.exists('instance/parking.db'):
-        shutil.copy('instance/parking.db', 'parking_backup.db')
+# GCS Persistence Functions
+def download_db_from_gcs():
+    """Download database from Google Cloud Storage on startup"""
+    if not GCS_ENABLED:
+        return
 
-event.listen(db.session, 'after_commit', backup_db)
+    bucket_name = os.environ.get('GCS_BUCKET_NAME')
+    if not bucket_name:
+        app.logger.info("GCS_BUCKET_NAME not set, using local database")
+        return
+
+    try:
+        client = storage.Client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob('parking.db')
+
+        if blob.exists():
+            os.makedirs('instance', exist_ok=True)
+            blob.download_to_filename('instance/parking.db')
+            app.logger.info("✓ Database downloaded from GCS")
+        else:
+            app.logger.info("No database found in GCS, using local/new database")
+    except Exception as e:
+        app.logger.error(f"Failed to download database from GCS: {e}")
+
+def upload_db_to_gcs(session):
+    """Upload database to Google Cloud Storage after each commit"""
+    if not GCS_ENABLED:
+        return
+
+    bucket_name = os.environ.get('GCS_BUCKET_NAME')
+    if not bucket_name:
+        return
+
+    try:
+        if os.path.exists('instance/parking.db'):
+            client = storage.Client()
+            bucket = client.bucket(bucket_name)
+            blob = bucket.blob('parking.db')
+            blob.upload_from_filename('instance/parking.db')
+            app.logger.debug("✓ Database uploaded to GCS")
+    except Exception as e:
+        app.logger.error(f"Failed to upload database to GCS: {e}")
+
+event.listen(db.session, 'after_commit', upload_db_to_gcs)
 
 with app.app_context():
-    if not os.path.exists('instance/parking.db') and os.path.exists('parking_backup.db'):
-        shutil.copy('parking_backup.db', 'instance/parking.db')
+    # Download database from GCS if available (runs before creating tables)
+    download_db_from_gcs()
     db.create_all()
 
 # Delete JSON cache files on app launch to force fresh data fetch from external APIs
