@@ -19,19 +19,31 @@ def fetch_data(app=None):
         stop_etas = fetch_all_stop_etas()
         with open('stopETAs.json', 'w') as file:
             json.dump(stop_etas, file)
-    with open('routes.json', 'r') as file:
-        routes = json.load(file)
-    with open('stops.json', 'r') as file:
-        stops = json.load(file)
+    try:
+        with open('routes.json', 'r') as file:
+            routes = json.load(file)
+    except (json.JSONDecodeError, FileNotFoundError):
+        routes = {}
+    try:
+        with open('stops.json', 'r') as file:
+            stops = json.load(file)
+    except (json.JSONDecodeError, FileNotFoundError):
+        stops = {}
     update_clean(app)
 
 def update_clean(app=None):
     global stops, routes
 
-    with open('stops.json', 'r') as file:
-        stops = json.load(file)
-    with open('routes.json', 'r') as file:
-        routes = json.load(file)
+    try:
+        with open('stops.json', 'r') as file:
+            stops = json.load(file)
+    except (json.JSONDecodeError, FileNotFoundError):
+        stops = {}
+    try:
+        with open('routes.json', 'r') as file:
+            routes = json.load(file)
+    except (json.JSONDecodeError, FileNotFoundError):
+        routes = {}
     for stop in stops.keys():
         stops[str(stop)]['routes'] = []
     for route in routes.keys():
@@ -45,18 +57,21 @@ def update_clean(app=None):
                     stops[stop]["routes"].append(routes[route]["name"])
     with open('routes.json', 'w') as file:
         json.dump(routes, file)
-    with open('stopETAs.json', 'r') as eta_file:
-        stop_etas = json.load(eta_file)
-        for stop in stop_etas["get_stop_etas"]:
-            stop_id = str(stop["id"])
-            if stop_id in stops.keys():
-                etas = []
-                nextBuses = []
-                for bus in stop["enRoute"]:
-                    etas.append(bus['minutes'])
-                    nextBuses.append(bus['equipmentID'])
-                stops[stop_id]["etas"] = etas
-                stops[stop_id]["nextBuses"] = nextBuses
+    try:
+        with open('stopETAs.json', 'r') as eta_file:
+            stop_etas = json.load(eta_file)
+    except (json.JSONDecodeError, FileNotFoundError):
+        stop_etas = {"get_stop_etas": []}
+    for stop in stop_etas["get_stop_etas"]:
+        stop_id = str(stop["id"])
+        if stop_id in stops.keys():
+            etas = []
+            nextBuses = []
+            for bus in stop["enRoute"]:
+                etas.append(bus['minutes'])
+                nextBuses.append(bus['equipmentID'])
+            stops[stop_id]["etas"] = etas
+            stops[stop_id]["nextBuses"] = nextBuses
     with open('stops.json', 'w') as file:
         json.dump(stops, file)
 
@@ -64,29 +79,32 @@ def update_clean(app=None):
 
     if app:
         app.logger.info(f"Loaded routes: {list(routes.keys())}")
-    with open('vehicles.json', 'r') as file:
-        vehicles = json.load(file)
+    try:
+        with open('vehicles.json', 'r') as file:
+            vehicles = json.load(file)
+    except (json.JSONDecodeError, FileNotFoundError):
+        vehicles = {"get_vehicles": []}
 
-        for vehicle in vehicles["get_vehicles"]:
-            stopNames = []
-            etas = []
-            for stop in vehicle["minutesToNextStops"]:
-                if str(stop["stopID"]) in stops.keys():
-                    stopNames.append(stops[str(stop["stopID"])]["name"])
-                    etas.append(stop["minutes"])
-            route_id = str(vehicle["routeID"])
-            buses.append({
-                "name": vehicle["equipmentID"],
-                "lat": vehicle["lat"],
-                "lng": vehicle["lng"],
-                "routeID": vehicle["routeID"],
-                "route": routes[route_id]["name"] if route_id in routes else "Unknown",
-                "inService": vehicle["inService"] == 1,
-                "load": vehicle["load"],
-                "onSchedule": vehicle["onSchedule"],
-                "stops": stopNames,
-                "etas": etas
-            })
+    for vehicle in vehicles["get_vehicles"]:
+        stopNames = []
+        etas = []
+        for stop in vehicle["minutesToNextStops"]:
+            if str(stop["stopID"]) in stops.keys():
+                stopNames.append(stops[str(stop["stopID"])]["name"])
+                etas.append(stop["minutes"])
+        route_id = str(vehicle["routeID"])
+        buses.append({
+            "name": vehicle["equipmentID"],
+            "lat": vehicle["lat"],
+            "lng": vehicle["lng"],
+            "routeID": vehicle["routeID"],
+            "route": routes[route_id]["name"] if route_id in routes else "Unknown",
+            "inService": vehicle["inService"] == 1,
+            "load": vehicle["load"],
+            "onSchedule": vehicle["onSchedule"],
+            "stops": stopNames,
+            "etas": etas
+        })
     with open('buses.json', 'w') as file:
         json.dump(buses, file)
 

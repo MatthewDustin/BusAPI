@@ -1,9 +1,10 @@
-import os, json, time, logging
+import os, json, time, logging, shutil
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request, send_from_directory, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from bus import fetch_data
+from sqlalchemy import event
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -31,7 +32,15 @@ def load_user(user_id):
         return User("admin")
     return None
 
+def backup_db(session):
+    if os.path.exists('instance/parking.db'):
+        shutil.copy('instance/parking.db', 'instance/parking_backup.db')
+
+event.listen(db.session, 'after_commit', backup_db)
+
 with app.app_context():
+    if not os.path.exists('instance/parking.db') and os.path.exists('instance/parking_backup.db'):
+        shutil.copy('instance/parking_backup.db', 'instance/parking.db')
     db.create_all()
 
 # Delete JSON cache files on app launch to force fresh data fetch from external APIs
