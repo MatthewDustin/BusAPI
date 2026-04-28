@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Flask, render_template, jsonify, request, send_from_directory, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_migrate import Migrate
 from bus import fetch_data
 from sqlalchemy import event
 
@@ -20,12 +21,13 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///parking.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "your-secret-key-change-this-in-production"
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
 # Import models after db initialization to avoid circular imports
-from parking import ParkingLot, FreeParkingSchedule, SpecialParkingSchedule
+from parking import ParkingLot, RegularParkingSchedule, SpecialParkingSchedule
 
 # Simple hardcoded user for authentication
 class User(UserMixin):
@@ -88,6 +90,9 @@ event.listen(db.session, 'after_commit', upload_db_to_gcs)
 with app.app_context():
     # Download database from GCS if available (runs before creating tables)
     download_db_from_gcs()
+    # Run database migrations
+    from flask_migrate import upgrade
+    upgrade(directory='migrations')
     db.create_all()
 
 # Delete JSON cache files on app launch to force fresh data fetch from external APIs
@@ -189,13 +194,20 @@ def delete_lot(lot_id):
     db.session.commit()
     return jsonify({"deleted": lot_id})
 
-@app.route('/api/schedules/free', methods=["POST"])
-def create_free_schedule():
+@app.route('/api/lots/<int:lot_id>/full', methods=["PUT"])
+def set_lot_full(lot_id):
+    lot = ParkingLot.query.get_or_404(lot_id)
+    lot.full = int(time.time())
+    db.session.commit()
+    return jsonify(lot.to_dict())
+
+@app.route('/api/schedules/regular', methods=["POST"])
+def create_regular_schedule():
     data = request.get_json()
     if not data or not data.get("day_of_week") or not data.get("parking_lot_id"):
         return jsonify({"error": "day_of_week and parking_lot_id are required"}), 400
 
-    schedule = FreeParkingSchedule(
+    schedule = RegularParkingSchedule(
         day_of_week=data["day_of_week"],
         start_time=data.get("start_time"),
         end_time=data.get("end_time"),
@@ -227,12 +239,12 @@ def create_special_schedule():
 
 @app.route('/api/schedules/<int:schedule_id>', methods=["PUT"])
 def update_schedule(schedule_id):
-    schedule = FreeParkingSchedule.query.get(schedule_id) or SpecialParkingSchedule.query.get(schedule_id)
+    schedule = RegularParkingSchedule.query.get(schedule_id) or SpecialParkingSchedule.query.get(schedule_id)
     if not schedule:
         return jsonify({"error": "Schedule not found"}), 404
 
     data = request.get_json()
-    if isinstance(schedule, FreeParkingSchedule):
+    if isinstance(schedule, RegularParkingSchedule):
         if "day_of_week" in data:
             schedule.day_of_week = data["day_of_week"]
     else:
@@ -255,7 +267,7 @@ def update_schedule(schedule_id):
 
 @app.route('/api/schedules/<int:schedule_id>', methods=["DELETE"])
 def delete_schedule(schedule_id):
-    schedule = FreeParkingSchedule.query.get(schedule_id) or SpecialParkingSchedule.query.get(schedule_id)
+    schedule = RegularParkingSchedule.query.get(schedule_id) or SpecialParkingSchedule.query.get(schedule_id)
     if not schedule:
         return jsonify({"error": "Schedule not found"}), 404
 

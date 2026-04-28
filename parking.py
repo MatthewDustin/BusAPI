@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, time
 import json
+import time as time_module
 from app import db
 
-class FreeParkingSchedule(db.Model):
+class RegularParkingSchedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     day_of_week = db.Column(db.String(20), nullable=False)
     start_time = db.Column(db.String(5), nullable=True)  # Format: HH:MM
@@ -50,7 +51,7 @@ class SpecialParkingSchedule(db.Model):
             "parking_lot_id": self.parking_lot_id
         }
 
-def check_schedules(free, special, default_tier):
+def check_schedules(regular, special, default_tier):
     now = datetime.now()
     current_day = now.strftime("%A")
     current_time = now.strftime("%H:%M")
@@ -66,7 +67,7 @@ def check_schedules(free, special, default_tier):
             tiers.remove("AppState Parking Pass")
 
     else:
-        for schedule in free:
+        for schedule in regular:
             if schedule["day_of_week"] == current_day:
                 if schedule["start_time"]:
                     #format times for comparison
@@ -172,17 +173,25 @@ class ParkingLot(db.Model):
     default_tier = db.Column(db.String(20), nullable=False)
     owner = db.Column(db.String(100), nullable=True)
     visible = db.Column(db.Boolean, default=True, nullable=False)
+    full = db.Column(db.Integer, nullable=True)
 
-    free_schedules = db.relationship('FreeParkingSchedule', backref='lot', lazy=True, cascade='all, delete-orphan')
+    regular_schedules = db.relationship('RegularParkingSchedule', backref='lot', lazy=True, cascade='all, delete-orphan')
     special_schedules = db.relationship('SpecialParkingSchedule', backref='lot', lazy=True, cascade='all, delete-orphan')
 
+    def check_full(self):
+        now = int(time_module.time())
+        return self.full is not None and now - self.full < 1800
+
     def to_dict(self):
-        free = [s.to_dict() for s in self.free_schedules]
+        regular = [s.to_dict() for s in self.regular_schedules]
         special = [s.to_dict() for s in self.special_schedules]
-        tier = check_schedules(free, special, self.default_tier)
+        if self.check_full():
+            tier = "Full"
+        else:
+            tier = check_schedules(regular, special, self.default_tier)
 
         if "AppState Parking Pass" == self.default_tier:
-            free.extend(student_parking_pass_schedule)
+            regular.extend(student_parking_pass_schedule)
         return {
             "id": self.id,
             "name": self.name,
@@ -190,8 +199,9 @@ class ParkingLot(db.Model):
             "coordinates": json.loads(self.coordinates),
             "default_tier": self.default_tier,
             "owner": self.owner,
-            "free_schedules": free,
+            "regular_schedules": regular,
             "special_schedules": special,
             "tier": tier,
             "visible": self.visible,
+            "full": self.full,
         }
