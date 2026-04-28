@@ -93,15 +93,32 @@ with app.app_context():
     
     # Run database migrations only if migrations directory exists
     migrations_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'migrations')
+    migrations_ran = False
     if os.path.exists(migrations_dir):
         from flask_migrate import upgrade
         try:
             upgrade(directory=migrations_dir)
+            migrations_ran = True
         except Exception as e:
             app.logger.warning(f"Migration skipped: {e}")
     
     # Always ensure all tables exist
     db.create_all()
+    
+    # Migrations didn't run, add missing columns manually if they don't exist
+    if not migrations_ran:
+        try:
+            # Check if full column exists on parking_lot
+            conn = db.engine.connect()
+            inspector = db.inspect(db.engine)
+            columns = [col['name'] for col in inspector.get_columns('parking_lot')]
+            if 'full' not in columns:
+                app.logger.info("Adding missing 'full' column to parking_lot table")
+                conn.execute(db.text('ALTER TABLE parking_lot ADD COLUMN full INTEGER'))
+                conn.commit()
+            conn.close()
+        except Exception as e:
+            app.logger.warning(f"Failed to add missing column: {e}")
 
 # Delete JSON cache files on app launch to force fresh data fetch from external APIs
 files_to_delete = ['announcements.json', 'buses.json', 'routes.json', 'stopETAs.json', 'stops.json', 'vehicles.json']
