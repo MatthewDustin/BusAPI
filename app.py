@@ -90,9 +90,17 @@ event.listen(db.session, 'after_commit', upload_db_to_gcs)
 with app.app_context():
     # Download database from GCS if available (runs before creating tables)
     download_db_from_gcs()
-    # Run database migrations
-    from flask_migrate import upgrade
-    upgrade(directory='migrations')
+    
+    # Run database migrations only if migrations directory exists
+    migrations_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'migrations')
+    if os.path.exists(migrations_dir):
+        from flask_migrate import upgrade
+        try:
+            upgrade(directory=migrations_dir)
+        except Exception as e:
+            app.logger.warning(f"Migration skipped: {e}")
+    
+    # Always ensure all tables exist
     db.create_all()
 
 # Delete JSON cache files on app launch to force fresh data fetch from external APIs
